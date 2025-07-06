@@ -11,13 +11,13 @@ except ImportError:
 # API Configuration
 API_KEY = st.secrets["ANTHROPIC_API_KEY"]
 
-# UI Configuration
-CHAT_CONTAINER_HEIGHT = 350
-CODE_EDITOR_HEIGHT = 400
+# UI Configuration - Compact sizing
+CHAT_CONTAINER_HEIGHT = 280  # Reduced from 350
+CODE_EDITOR_HEIGHT = 320     # Reduced from 400
 CODE_EDITOR_THEME = 'monokai'
-CODE_EDITOR_FONT_SIZE = 14
+CODE_EDITOR_FONT_SIZE = 13   # Reduced from 14
 CODE_EDITOR_TAB_SIZE = 4
 
 # Debug Configuration
 MAX_DEBUG_MESSAGES = 5
-MAX_CODE_PREVIEW_LENGTH = 100
+MAX_CODE_PREVIEW_LENGTH = 80  # Reduced from 100

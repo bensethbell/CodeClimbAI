@@ -7,7 +7,7 @@ class MessageRenderer:
     
     @staticmethod
     def render_chat_message(message):
-        """Render a single chat message with proper code formatting."""
+        """Render a single chat message with compact, proper code formatting."""
         # Multiple ways to detect if this is an assistant message
         is_assistant = False
         
@@ -45,56 +45,56 @@ class MessageRenderer:
         
         if is_assistant:
             st.markdown(f"""
-            <div style="display: flex; justify-content: flex-start; margin-bottom: 15px;">
-                <div style="background-color: #e3f2fd; padding: 12px 16px; border-radius: 18px; max-width: 75%; word-wrap: break-word; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">
-                    <strong>🤖 Claude:</strong><br>{processed_content}
+            <div style="display: flex; justify-content: flex-start; margin-bottom: 8px;">
+                <div style="background-color: #e3f2fd; padding: 8px 12px; border-radius: 12px; max-width: 85%; word-wrap: break-word; box-shadow: 0 1px 2px rgba(0,0,0,0.1); font-size: 14px; line-height: 1.4;">
+                    <strong style="font-size: 13px;">🤖 Claude:</strong><br>{processed_content}
                 </div>
             </div>
             """, unsafe_allow_html=True)
         else:
             st.markdown(f"""
-            <div style="display: flex; justify-content: flex-end; margin-bottom: 15px;">
-                <div style="background-color: #e8f5e8; padding: 12px 16px; border-radius: 18px; max-width: 75%; word-wrap: break-word; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">
-                    <strong>👤 You:</strong><br>{processed_content}
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 8px;">
+                <div style="background-color: #e8f5e8; padding: 8px 12px; border-radius: 12px; max-width: 85%; word-wrap: break-word; box-shadow: 0 1px 2px rgba(0,0,0,0.1); font-size: 14px; line-height: 1.4;">
+                    <strong style="font-size: 13px;">👤 You:</strong><br>{processed_content}
                 </div>
             </div>
             """, unsafe_allow_html=True)
     
     @staticmethod
     def format_message_content(content: str) -> str:
-        """Format message content with proper code blocks and styling."""
+        """Format message content with proper code blocks and compact styling."""
         # Format **bold** text FIRST (before single asterisks)
-        content = re.sub(r'\*\*([^*\n]+)\*\*', r'<strong>\1</strong>', content)
+        content = re.sub(r'\*\*([^*\n]+)\*\*', r'<strong style="font-size: 14px;">\1</strong>', content)
         
         # Format italic text AFTER bold (for submission messages) - be more careful about asterisks
-        content = re.sub(r'(?<!\*)\*([^*\n]+)\*(?!\*)', r'<em style="color: #666; font-style: italic;">\1</em>', content)
+        content = re.sub(r'(?<!\*)\*([^*\n]+)\*(?!\*)', r'<em style="color: #666; font-style: italic; font-size: 13px;">\1</em>', content)
         
-        # Replace code blocks with proper HTML formatting
+        # Replace code blocks with proper HTML formatting - more compact
         content = re.sub(
             r'```(\w+)?\n?(.*?)```', 
-            lambda m: f'<div style="background-color: #f5f5f5; border-left: 4px solid #007acc; padding: 8px; margin: 8px 0; border-radius: 4px; font-family: monospace; white-space: pre-wrap; overflow-x: auto;"><code>{m.group(2).strip()}</code></div>',
+            lambda m: f'<div style="background-color: #f5f5f5; border-left: 3px solid #007acc; padding: 6px; margin: 6px 0; border-radius: 3px; font-family: monospace; white-space: pre-wrap; overflow-x: auto; font-size: 12px;"><code>{m.group(2).strip()}</code></div>',
             content, 
             flags=re.DOTALL
         )
         
-        # Replace inline code with proper formatting
+        # Replace inline code with proper formatting - more compact
         content = re.sub(
             r'`([^`\n]+)`',
-            r'<code style="background-color: #f1f1f1; padding: 2px 4px; border-radius: 3px; font-family: monospace;">\1</code>',
+            r'<code style="background-color: #f1f1f1; padding: 1px 3px; border-radius: 2px; font-family: monospace; font-size: 12px;">\1</code>',
             content
         )
         
-        # Format error sections with better styling
+        # Format error sections with better styling - more compact
         content = re.sub(
             r'\*\*Error:\*\* ([^\n]+)',
-            r'<div style="color: #d32f2f; font-weight: bold; margin: 4px 0;">🚨 Error: \1</div>',
+            r'<div style="color: #d32f2f; font-weight: bold; margin: 3px 0; font-size: 13px;">🚨 Error: \1</div>',
             content
         )
         
-        # Format success messages
+        # Format success messages - more compact
         content = re.sub(
             r'✅ \*\*([^*]+)\*\*',
-            r'<div style="color: #2e7d2e; font-weight: bold; margin: 4px 0;">✅ \1</div>',
+            r'<div style="color: #2e7d2e; font-weight: bold; margin: 3px 0; font-size: 13px;">✅ \1</div>',
             content
         )
         
@@ -105,7 +105,7 @@ class MessageRenderer:
     
     @staticmethod
     def render_welcome_message():
-        """Render the welcome message."""
+        """Render the welcome message with compact styling."""
         welcome_msg = ChatMessage(
             MessageRole.ASSISTANT,
             "👋 Welcome! Let's learn through discovery.<br><br><strong>Quick start:</strong><br>• <strong>Type \"example\"</strong> below to get sample code<br>• <strong>Paste your own code</strong> on the left<br>• <strong>Click \"📤 Submit Code\"</strong> to begin learning<br><br>📖 <strong>Full instructions available on the right</strong> - click the dropdown to expand! Ready to start? 🚀"

@@ -16,7 +16,7 @@ class PanelRenderer:
     @staticmethod
     def render_code_input_panel():
         """Render the left panel for code input."""
-        st.header("📝 Your Code")
+        st.markdown("### 📝 Your Code")  # CHANGED: st.header() → st.markdown() for compact
         
         # IDE-like code input area
         if ACE_AVAILABLE:
@@ -77,14 +77,14 @@ class PanelRenderer:
     @staticmethod
     def render_chat_panel(assistant):
         """Render the middle panel for chat interface."""
-        st.header("🤖 Claude Assistant")
+        st.markdown("### 🤖 Claude Assistant")  # CHANGED: st.header() → st.markdown() for compact
         
         # Show current goal if session is active
         if st.session_state.session and st.session_state.session.is_active:
             st.info(f"🎯 **Primary Focus:** {st.session_state.session.goal}")
         
         # Conversation area with native Streamlit container and max height
-        st.subheader("💬 Conversation")
+        st.markdown("#### 💬 Conversation")  # CHANGED: st.subheader() → st.markdown() for compact
         
         # Use native Streamlit container with height limit and auto-scroll
         with st.container(height=CHAT_CONTAINER_HEIGHT):
@@ -107,13 +107,13 @@ class PanelRenderer:
     @staticmethod
     def render_user_input_area(assistant):
         """Render user input area and handle message submission."""
-        st.subheader("💭 Your Response")
+        st.markdown("#### 💭 Your Response")  # CHANGED: st.subheader() → st.markdown() for compact
         
         # Simple form without complex keys
         with st.form("chat_form", clear_on_submit=True):
             user_input = st.text_area(
                 "Type your message:",
-                height=100,
+                height=80,  # CHANGED: height=100 → height=80 for compact
                 placeholder="Type 'example' to get sample code, or ask me anything...",
                 help="Press Ctrl+Enter to send"
             )
@@ -163,7 +163,7 @@ class PanelRenderer:
                     st.error(f"Error getting new question: {str(e)}")
         
         # Session control buttons
-        st.subheader("🎯 Session Actions")
+        st.markdown("#### 🎯 Session Actions")  # CHANGED: st.subheader() → st.markdown() for compact
         col2_4, col2_5 = st.columns(2)
         
         with col2_4:
@@ -193,7 +193,7 @@ class PanelRenderer:
     @staticmethod
     def render_instructions_panel():
         """Render the right panel with properly collapsible instructions."""
-        st.header("📖 Help")
+        st.markdown("### 📖 Help")  # CHANGED: st.header() → st.markdown() for compact
         
         # Quick tips always visible at top  
         st.markdown("**🚀 Quick Start:**")
@@ -205,7 +205,7 @@ class PanelRenderer:
         if hasattr(st.session_state, 'debug_messages') and st.session_state.debug_messages:
             with st.expander("🔧 **Debug Info**", expanded=True):
                 st.markdown("**Latest activity:**")
-                for debug_msg in st.session_state.debug_messages[-4:]:  # Show last 4 debug messages
+                for debug_msg in st.session_state.debug_messages[-4:]:  # KEPT: Show last 4 debug messages as original
                     st.text(debug_msg)
         
         # Compact collapsible detailed instructions
@@ -236,6 +236,6 @@ class PanelRenderer:
             with st.expander(f"🔄 **Code History** ({len(st.session_state.code_history)} versions)", expanded=False):
                 for i, code in enumerate(st.session_state.code_history, 1):
                     st.markdown(f"**Version {i}:**")
-                    st.code(code[:80] + "..." if len(code) > 80 else code, language="python")
+                    st.code(code[:80] + "..." if len(code) > 80 else code, language="python")  # KEPT: Original 80 chars
                     if i < len(st.session_state.code_history):
                         st.markdown("---")
