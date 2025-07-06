@@ -1,0 +1,13 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Streamlit local secrets
+.streamlit/secrets.toml
+
+# Local environment files (if any)
+.env
+.venv/
+env/
+venv/.DS_Store
