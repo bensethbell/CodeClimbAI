@@ -1,5 +1,6 @@
 """
 Question templates for adaptive coaching system.
+FINAL FIX: Removed backticks from question text to prevent code block styling.
 """
 
 from typing import List, Dict, Any
@@ -11,12 +12,12 @@ class QuestionTemplates:
     
     @staticmethod
     def create_pandas_iterrows_mcq(user_code: str) -> LearningQuestion:
-        """Create MCQ about pandas iterrows performance."""
+        """Create MCQ about pandas iterrows performance - FIXED: No backticks."""
         return LearningQuestion(
             question_id=str(uuid.uuid4()),
             question_type=QuestionType.MULTIPLE_CHOICE,
             title="Pandas Performance Question",
-            question_text="Looking at your code with `df.iterrows()`, which statement is most accurate about its performance?",
+            question_text="Looking at your code with df.iterrows(), which statement is most accurate about its performance?",
             correct_answer="B",
             options=[
                 QuestionOption(
@@ -76,7 +77,7 @@ total_scores = students_df["exam_score"] + students_df["homework_score"]'''
             question_id=str(uuid.uuid4()),
             question_type=QuestionType.TRUE_FALSE,
             title="Code Prediction",
-            question_text=f"True or False: This code will successfully add a 'total' column to the DataFrame?\n\n```python\n{code_snippet}\n```",
+            question_text=f"True or False: This code will successfully add a 'total' column to the DataFrame?\n\n**Python:**\n    {chr(10).join('    ' + line for line in code_snippet.split(chr(10)))}",
             correct_answer="True",
             explanation="Yes, this code will work, but it's inefficient. The loop approach will successfully create the 'total' column."
         )
@@ -88,7 +89,7 @@ total_scores = students_df["exam_score"] + students_df["homework_score"]'''
             question_id=str(uuid.uuid4()),
             question_type=QuestionType.SPOT_BUG,
             title="Spot the Bug",
-            question_text=f"What's the main issue with this code?\n\n```python\n{buggy_code}\n```",
+            question_text=f"What's the main issue with this code?\n\n**Python:**\n    {chr(10).join('    ' + line for line in buggy_code.split(chr(10)))}",
             correct_answer=bug_description,
             explanation=f"The main issue is: {bug_description}"
         )
@@ -100,7 +101,7 @@ total_scores = students_df["exam_score"] + students_df["homework_score"]'''
             question_id=str(uuid.uuid4()),
             question_type=QuestionType.WHAT_IF,
             title="What If Scenario",
-            question_text=f"What would happen if {scenario}?\n\nBase code:\n```python\n{base_code}\n```",
+            question_text=f"What would happen if {scenario}?\n\nBase code:\n**Python:**\n    {chr(10).join('    ' + line for line in base_code.split(chr(10)))}",
             correct_answer="depends on scenario",
             explanation="Consider how the change affects performance, correctness, and maintainability."
         )
