@@ -3,11 +3,11 @@ import re
 from core.models import MessageRole, ChatMessage
 
 class MessageRenderer:
-    """Handles rendering of chat messages with BASIC formatting only."""
+    """Handles rendering of chat messages with NO CODE BLOCKS - basic formatting only."""
     
     @staticmethod
     def render_chat_message(message):
-        """Render a single chat message with BASIC, non-aggressive CSS."""
+        """Render a single chat message with BASIC formatting - NO CODE BLOCKS."""
         # Detect if this is an assistant message
         is_assistant = False
         
@@ -29,7 +29,7 @@ class MessageRenderer:
         else:
             content = str(message)
         
-        # Process content for basic formatting
+        # Process content for basic formatting - NO CODE BLOCKS
         processed_content = MessageRenderer.format_message_content(content)
         
         if is_assistant:
@@ -63,7 +63,7 @@ class MessageRenderer:
     
     @staticmethod
     def format_message_content(content: str) -> str:
-        """Format message content with BASIC styling - no aggressive CSS."""
+        """Format message content with NO CODE BLOCKS - basic formatting only."""
         
         # Format **bold** text
         content = re.sub(r'\*\*([^*\n]+)\*\*', r'<strong>\1</strong>', content)
@@ -71,24 +71,26 @@ class MessageRenderer:
         # Format italic text
         content = re.sub(r'(?<!\*)\*([^*\n]+)\*(?!\*)', r'<em>\1</em>', content)
         
-        # Replace code blocks with BASIC formatting
-        def format_code_block(match):
+        # REMOVE ALL CODE BLOCKS - convert to indented text instead
+        def format_code_as_text(match):
+            language = match.group(1) if match.group(1) else "code"
             code_content = match.group(2).strip()
-            return f'''<div style="
-                background-color: #f5f5f5; 
-                border-left: 3px solid #007acc; 
-                padding: 8px; 
-                margin: 8px 0; 
-                font-family: monospace; 
-                white-space: pre-wrap;
-            ">{code_content}</div>'''
+            
+            # Format as indented text with language label
+            formatted_lines = []
+            formatted_lines.append(f"<strong>{language.upper()}:</strong>")
+            for line in code_content.split('\n'):
+                formatted_lines.append(f"&nbsp;&nbsp;&nbsp;&nbsp;{line}")
+            
+            return '<br>'.join(formatted_lines)
         
-        content = re.sub(r'```(\w+)?\n?(.*?)```', format_code_block, content, flags=re.DOTALL)
+        # Replace code blocks with formatted text
+        content = re.sub(r'```(\w+)?\n?(.*?)```', format_code_as_text, content, flags=re.DOTALL)
         
-        # Replace inline code with MINIMAL styling
+        # Replace inline code with MINIMAL styling - NO BACKGROUND
         content = re.sub(
             r'`([^`\n]+)`',
-            r'<code style="background-color: #f1f1f1; padding: 2px 4px; border-radius: 3px; font-family: monospace;">\1</code>',
+            r'<code style="font-family: monospace; font-weight: bold;">\1</code>',
             content
         )
         

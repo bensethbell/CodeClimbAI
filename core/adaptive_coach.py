@@ -1,6 +1,6 @@
 """
 Adaptive coaching system for the Learn-As-You-Go Code Review Assistant.
-SHORTENED: Uses helper functions to reduce file size and eliminate circular imports.
+FINAL VERSION: Uses helper functions to reduce file size and eliminate circular imports.
 """
 
 import uuid
@@ -120,7 +120,8 @@ class AdaptiveCoach:
             print("DEBUG: 'example' command received.")
             example_code, category = self.load_example_code()
             print("DEBUG: Example loaded:", example_code, category)
-            return f"Example loaded! Here's a {category} example:\n\n{example_code}"
+            # NO CODE BLOCKS - format as plain text
+            return f"Example loaded! Here's a {category} example:\n\n**Python:**\n    {chr(10).join('    ' + line for line in example_code.split(chr(10)))}"
         
         # If waiting for answer to a specific question
         if coaching_state.is_waiting_for_answer():
@@ -147,7 +148,7 @@ class AdaptiveCoach:
                              if i.answer_status == AnswerStatus.INCORRECT)
         
         if incorrect_count >= 2:
-            return "💡 **Specific Help:** Look at your loop - instead of `for idx, row in df.iterrows():`, try `df['result'] = df['column1'] * value + df['column2']`. This processes all rows at once!"
+            return "💡 **Specific Help:** Look at your loop - instead of 'for idx, row in df.iterrows():', try 'df['result'] = df['column1'] * value + df['column2']'. This processes all rows at once!"
         elif coaching_state.get_success_rate() > 0.7:
             return "🧠 **Conceptual Hint:** Think about the difference between imperative (telling the computer how to do each step) and declarative (telling it what you want). Pandas excels at declarative operations."
         else:

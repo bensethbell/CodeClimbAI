@@ -1,6 +1,6 @@
 """
 Question formatting utilities for the adaptive coaching system.
-FIXED: Removed ALL code blocks to prevent UI display issues.
+FINAL VERSION: Removed ALL code blocks to prevent UI display issues.
 """
 
 
