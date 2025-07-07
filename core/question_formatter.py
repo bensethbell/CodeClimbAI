@@ -1,25 +1,21 @@
 """
 Question formatting utilities for the adaptive coaching system.
-FIXED: Removed circular import by deferring model imports.
+FIXED: Removed ALL code blocks to prevent UI display issues.
 """
 
 
 def safe_debug_log(msg: str):
     """Safe debug logging that won't fail on import issues."""
     try:
-        # Try relative import first
         from .session_manager import add_debug_message
         add_debug_message(msg)
     except ImportError:
         try:
-            # Try absolute import
             from core.session_manager import add_debug_message
             add_debug_message(msg)
         except ImportError:
-            # Fall back to print for debugging
             print(f"DEBUG: {msg}")
     except Exception:
-        # Silent fallback - don't let debug logging break functionality
         print(f"DEBUG: {msg}")
 
 
@@ -30,8 +26,7 @@ class QuestionFormatter:
     def format_question_message(question) -> str:
         """
         Format a learning question for display in chat.
-        Enhanced error handling and cloud deployment compatibility.
-        FIXED: Uses duck typing instead of importing models to avoid circular imports.
+        NO CODE BLOCKS - presents code as formatted text only.
         """
         # VALIDATION: Ensure question object is properly formed
         if not question:
@@ -63,9 +58,14 @@ class QuestionFormatter:
                 safe_debug_log("❌ Question text is missing or empty")
                 return "**Error:** Question text is missing. Please try submitting your code again."
             
-            # 3. Toy code if present
+            # 3. Toy code if present - FORMAT AS TEXT, NO CODE BLOCKS
             if hasattr(question, 'toy_code') and question.toy_code:
-                message_parts.append(f"```python\n{question.toy_code}\n```")
+                # Format code as indented text with Python: prefix
+                code_lines = question.toy_code.strip().split('\n')
+                formatted_code = "**Python:**\n"
+                for line in code_lines:
+                    formatted_code += f"    {line}\n"
+                message_parts.append(formatted_code.rstrip())
             
             # 4. MCQ OPTIONS - CRITICAL SECTION with enhanced validation
             if (hasattr(question, 'question_type') and 
