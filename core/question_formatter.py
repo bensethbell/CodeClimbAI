@@ -1,6 +1,6 @@
 """
 Question formatting utilities for the adaptive coaching system.
-FINAL VERSION: Removed ALL code blocks to prevent UI display issues.
+FIXED VERSION: Removes duplicate letters and implements proper CSS styling.
 """
 
 
@@ -20,13 +20,12 @@ def safe_debug_log(msg: str):
 
 
 class QuestionFormatter:
-    """Handles formatting of learning questions for display in chat."""
+    """Handles formatting of learning questions with FIXED tight spacing and NO duplicate letters."""
     
     @staticmethod
     def format_question_message(question) -> str:
         """
-        Format a learning question for display in chat.
-        NO CODE BLOCKS - presents code as formatted text only.
+        Format a learning question with FIXED layout - NO DUPLICATE LETTERS.
         """
         # VALIDATION: Ensure question object is properly formed
         if not question:
@@ -41,38 +40,41 @@ class QuestionFormatter:
                 return f"**Error:** Question object missing {attr}. Please try submitting your code again."
         
         try:
-            # BUILD MESSAGE STEP BY STEP with validation at each step
+            # BUILD MESSAGE WITH FIXED HTML STRUCTURE
             message_parts = []
             
-            # 1. Header with validation
+            # 1. COMPACT HEADER with CSS class
             if hasattr(question, 'title') and question.title:
-                header = f"📚 **{question.title}**"
+                header = f'<div class="question-title">📚 {question.title}'
                 if hasattr(question, 'question_type') and hasattr(question.question_type, 'value'):
-                    header += f" ({question.question_type.value.upper()})"
+                    header += f' ({question.question_type.value.upper()})'
+                header += '</div>'
                 message_parts.append(header)
             
-            # 2. Question text with validation
+            # 2. QUESTION TEXT with CSS class
             if hasattr(question, 'question_text') and question.question_text:
-                message_parts.append(question.question_text)
+                question_text = f'<div class="question-text">{question.question_text}</div>'
+                message_parts.append(question_text)
             else:
                 safe_debug_log("❌ Question text is missing or empty")
                 return "**Error:** Question text is missing. Please try submitting your code again."
             
-            # 3. Toy code if present - FORMAT AS TEXT, NO CODE BLOCKS
+            # 3. TOY CODE with COMPACT formatting
             if hasattr(question, 'toy_code') and question.toy_code:
-                # Format code as indented text with Python: prefix
                 code_lines = question.toy_code.strip().split('\n')
-                formatted_code = "**Python:**\n"
+                formatted_code = '<div style="background-color: #f8f9fa; padding: 8px; border-radius: 6px; margin: 8px 0; font-family: monospace; font-size: 12px; line-height: 1.3;">'
+                formatted_code += '<strong>Python:</strong><br>'
                 for line in code_lines:
-                    formatted_code += f"    {line}\n"
-                message_parts.append(formatted_code.rstrip())
+                    formatted_code += f'&nbsp;&nbsp;&nbsp;&nbsp;{line}<br>'
+                formatted_code += '</div>'
+                message_parts.append(formatted_code)
             
-            # 4. MCQ OPTIONS - CRITICAL SECTION with enhanced validation
+            # 4. MCQ OPTIONS - FIXED to remove duplicate letters
             if (hasattr(question, 'question_type') and 
                 hasattr(question.question_type, 'value') and
                 question.question_type.value == 'mcq'):
                 
-                safe_debug_log("🔍 Processing MCQ options...")
+                safe_debug_log("🔍 Processing MCQ options with FIXED formatting...")
                 
                 # Validate options exist
                 if not hasattr(question, 'options'):
@@ -87,8 +89,8 @@ class QuestionFormatter:
                 else:
                     safe_debug_log(f"✅ MCQ has {len(question.options)} options")
                     
-                    # Build options section
-                    options_section = ["**Options:**"]
+                    # Build COMPACT options section with CSS classes - FIXED DUPLICATE LETTERS
+                    options_html = '<div class="mcq-options"><strong>Options:</strong><br>'
                     
                     for i, option in enumerate(question.options):
                         if not option:
@@ -101,44 +103,56 @@ class QuestionFormatter:
                         option_text = ""
                         if hasattr(option, 'text') and option.text:
                             option_text = option.text
+                            # CRITICAL FIX: Remove duplicate letter if it starts with the same letter
+                            if option_text.startswith(f"{letter}) "):
+                                option_text = option_text[3:]  # Remove "A) " from the beginning
                         else:
                             safe_debug_log(f"❌ Option {i} missing text attribute")
                             option_text = f"[Option {letter} - text missing]"
                         
-                        options_section.append(f"{letter}) {option_text}")
+                        # Use CSS class for compact styling - SINGLE LETTER ONLY
+                        options_html += f'<div class="mcq-option"><strong>{letter})</strong> {option_text}</div>'
                     
-                    # Add options to message
-                    message_parts.extend(options_section)
-                    message_parts.append("**💬 How to respond:** Type just the letter (A, B, C, or D)")
+                    options_html += '</div>'
+                    message_parts.append(options_html)
                     
-                    safe_debug_log(f"✅ MCQ formatted successfully with {len(question.options)} options")
+                    # COMPACT response instructions with CSS class
+                    instructions = '<div class="response-instructions">💬 <strong>How to respond:</strong> Type just the letter (A, B, C, or D)</div>'
+                    message_parts.append(instructions)
+                    
+                    safe_debug_log(f"✅ MCQ formatted successfully with FIXED duplicate letter issue")
             
-            # 5. Response instructions for other question types
+            # 5. RESPONSE INSTRUCTIONS for other question types
             elif hasattr(question, 'question_type'):
+                instructions_text = ""
                 if (hasattr(question.question_type, 'value') and 
                     question.question_type.value == 'tf'):
-                    message_parts.append("**💬 How to respond:** Type 'True' or 'False'")
+                    instructions_text = '💬 <strong>How to respond:</strong> Type "True" or "False"'
                 elif (hasattr(question.question_type, 'value') and 
                       question.question_type.value == 'toy_example'):
-                    message_parts.append("**💬 How to respond:** Tell me which option you think is better and briefly why")
+                    instructions_text = '💬 <strong>How to respond:</strong> Tell me which option you think is better and briefly why'
                 elif (hasattr(question.question_type, 'value') and 
                       question.question_type.value == 'spot_bug'):
-                    message_parts.append("**💬 How to respond:** Describe what you think the issue is")
+                    instructions_text = '💬 <strong>How to respond:</strong> Describe what you think the issue is'
                 elif (hasattr(question.question_type, 'value') and 
                       question.question_type.value == 'what_if'):
-                    message_parts.append("**💬 How to respond:** Explain what you think would happen")
+                    instructions_text = '💬 <strong>How to respond:</strong> Explain what you think would happen'
                 else:
-                    message_parts.append("**💬 How to respond:** Share your thoughts")
+                    instructions_text = '💬 <strong>How to respond:</strong> Share your thoughts'
+                
+                if instructions_text:
+                    instructions = f'<div class="response-instructions">{instructions_text}</div>'
+                    message_parts.append(instructions)
             
-            # 6. Build final message
-            final_message = "\n\n".join(message_parts)
+            # 6. BUILD FINAL MESSAGE
+            final_message = '\n'.join(message_parts)
             
             # FINAL VALIDATION: Ensure message is substantial
             if len(final_message.strip()) < 50:
                 safe_debug_log("❌ Final message too short, potential formatting failure")
                 return f"**Question:** {question.question_text}\n\n**How to respond:** Share your thoughts"
             
-            safe_debug_log(f"✅ Question formatted successfully: {len(final_message)} characters")
+            safe_debug_log(f"✅ Question formatted successfully with FIXED styling: {len(final_message)} characters")
             return final_message
             
         except Exception as e:

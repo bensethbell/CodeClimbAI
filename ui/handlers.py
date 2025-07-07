@@ -24,9 +24,10 @@ class InputHandler:
         try:
             add_debug_message(f"Processing input: {clean_input}")
             
-            # Handle special commands
+            # Handle special commands - MODIFIED: Updated to use button instead of 'example'
             if clean_input.lower() == "example":
-                InputHandler.handle_example_command()
+                # Provide guidance to use the button instead
+                InputHandler.handle_example_guidance()
             elif clean_input.lower() == "test" and st.session_state.session:
                 InputHandler.handle_test_command()
             else:
@@ -37,8 +38,30 @@ class InputHandler:
             add_debug_message(f"❌ Error in handle_user_message: {str(e)}")
     
     @staticmethod
+    def handle_example_guidance():
+        """MODIFIED: Guide users to use the button instead of 'example' command."""
+        try:
+            add_debug_message("📝 Providing example button guidance")
+            
+            # Ensure session exists
+            if not st.session_state.session:
+                st.session_state.session = ReviewSession("", "", "", [])
+                add_debug_message("📝 Created new session for guidance")
+            
+            # Add guidance message
+            add_message_to_session(st.session_state.session, MessageRole.USER, "example")
+            add_message_to_session(st.session_state.session, MessageRole.ASSISTANT, 
+                "👋 I see you typed 'example'! To load sample code, please click the **'📚 Get Example'** button in the left panel above the code editor. This will load the main pandas optimization example for you to analyze!")
+            
+            add_debug_message("📝 Example guidance provided successfully")
+            
+        except Exception as e:
+            st.error(f"Error providing example guidance: {str(e)}")
+            add_debug_message(f"❌ Error in handle_example_guidance: {str(e)}")
+    
+    @staticmethod
     def handle_example_command():
-        """Handle the 'example' command with UI refresh fix."""
+        """PRESERVED: Original example command logic for compatibility."""
         try:
             add_debug_message("📝 Starting example command")
             
@@ -99,7 +122,6 @@ class InputHandler:
             if st.session_state.session.current_code.strip():
                 execution_result = CodeExecutor.execute_code_safely(st.session_state.session.current_code)
                     
-                # filepath: ui/handlers.py
                 if execution_result['success']:
                     output_block = f"**Output:**\n```\n{execution_result['output']}\n```" if execution_result['output'] else ""
                     response = f"""✅ **Code executed successfully!**
@@ -174,8 +196,8 @@ Let's fix this error first. Can you identify what's causing the issue?"""
                 else:
                     response = assistant.evaluate_response(st.session_state.session, clean_input)
             else:
-                # General chat
-                response = f"I'm here to help! {clean_input if len(clean_input) < 50 else 'Thanks for your message.'} To get started with code review, you can type 'example' for sample code or paste your own code in the left panel."
+                # General chat - UPDATED: Mention button instead of 'example' command
+                response = f"I'm here to help! {clean_input if len(clean_input) < 50 else 'Thanks for your message.'} To get started with code review, click the '📚 Get Example' button to load sample code or paste your own code in the left panel."
                 
                 # Add helpful commands
                 if st.session_state.session and st.session_state.session.current_code.strip():
