@@ -141,10 +141,10 @@ class MessageRenderer:
         
         content = re.sub(r'```(\w+)?\n?(.*?)```', format_code_block, content, flags=re.DOTALL)
         
-        # Replace inline code with STREAMLIT CLOUD-OPTIMIZED formatting
+        # Replace inline code with PROPER INLINE styling (not oversized)
         content = re.sub(
             r'`([^`\n]+)`',
-            r'<code style="background-color: #f1f1f1 !important; padding: 1px 2px !important; border-radius: 2px !important; font-family: \'Courier New\', monospace !important; font-size: 10px !important; word-break: break-all !important; overflow-wrap: break-word !important; max-width: 100% !important; display: inline-block !important;">\1</code>',
+            r'<code style="background-color: #f1f1f1; padding: 2px 4px; border-radius: 3px; font-family: \'Courier New\', monospace; font-size: 12px;">\1</code>',
             content
         )
         
