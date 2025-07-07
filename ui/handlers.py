@@ -20,6 +20,8 @@ class InputHandler:
     def handle_user_message(clean_input, assistant):
         """Handle user message processing."""
         try:
+            add_debug_message(f"Processing input: {clean_input}")
+            
             # Handle special commands
             if clean_input.lower() == "example":
                 InputHandler.handle_example_command()
@@ -28,8 +30,7 @@ class InputHandler:
             else:
                 InputHandler.handle_regular_chat(clean_input, assistant)
             
-            # Increment input key to reset the text area
-            st.session_state.last_input_key += 1
+            # Force rerun to update UI
             st.rerun()
             
         except Exception as e:
@@ -38,20 +39,37 @@ class InputHandler:
     
     @staticmethod
     def handle_example_command():
-        """Handle the 'example' command."""
+        """Handle the 'example' command with enhanced debugging."""
         try:
-            example_code = get_example_code()
-            st.session_state.current_code = example_code
+            add_debug_message("📝 Starting example command")
             
-            # Add to conversation
+            # Get example code
+            example_code = get_example_code()
+            add_debug_message(f"📝 Got example code: {len(example_code)} chars")
+            
+            # Ensure session state exists
+            if 'current_code' not in st.session_state:
+                st.session_state.current_code = ""
+                add_debug_message("📝 Initialized current_code in session state")
+            
+            # Set the code in session state
+            st.session_state.current_code = example_code
+            add_debug_message(f"📝 Set current_code to: {st.session_state.current_code[:50]}...")
+            
+            # Ensure session exists
             if not st.session_state.session:
                 st.session_state.session = ReviewSession("", "", "", [])
+                add_debug_message("📝 Created new session")
             
             # Reset code history when loading new example
+            if 'code_history' not in st.session_state:
+                st.session_state.code_history = []
+            if 'original_session_code' not in st.session_state:
+                st.session_state.original_session_code = ""
+                
             st.session_state.code_history = []
             st.session_state.original_session_code = ""
-            
-            add_debug_message("📝 Example loaded, history reset")
+            add_debug_message("📝 Reset code history")
             
             # Add to conversation using the helper
             add_message_to_session(st.session_state.session, MessageRole.USER, "example")
@@ -60,9 +78,13 @@ class InputHandler:
                 "The code is now in the left panel - you can click '📤 Submit Code' to begin our learning session! "
                 "\n\n*When you start the review, I'll generate fake sales data (1000 rows) and test your code to make sure it runs correctly.*")
             
+            add_debug_message("📝 Example command completed successfully")
+            
         except Exception as e:
             st.error(f"Error loading example: {str(e)}")
             add_debug_message(f"❌ Error in handle_example_command: {str(e)}")
+            import traceback
+            add_debug_message(f"❌ Traceback: {traceback.format_exc()}")
     
     @staticmethod
     def handle_test_command():
