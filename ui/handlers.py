@@ -5,8 +5,10 @@ from utils.execution import CodeExecutor
 from core.session_manager import add_message_to_session, add_debug_message
 
 def get_example_code():
-    """Get the main pandas optimization example directly in handlers."""
-    return '''def add_metrics(df):
+    """Get the main pandas optimization example with proper imports."""
+    return '''import pandas as pd
+
+def add_metrics(df):
     results = []
     for idx, row in df.iterrows():
         results.append(row["price"] * 0.2 + row["tax"])
