@@ -6,11 +6,6 @@ if os.getenv("STREAMLIT_DEBUG") == "1":
     debugpy.wait_for_client()       # pause until the debugger connects
     debugpy.breakpoint()            # optionally drop into debugger immediately
 
-# if os.getenv("STREAMLIT_DEBUG") == "1":
-#     import debugpy
-#     debugpy.listen(5678)
-#     print("⏳ Debugger listening on port 5678")
-
 import streamlit as st
 from core import ClaudeAPIClient, CodeReviewAssistant, SessionManager
 from ui import UIManager
@@ -23,11 +18,11 @@ st.set_page_config(
     layout="wide"
 )
 
-def apply_aggressive_compact_styling():
-    """Apply very aggressive compact CSS styling to match local appearance."""
+def apply_safe_compact_styling():
+    """Apply SAFE compact CSS styling - NO CODE BLOCK INTERFERENCE."""
     st.markdown("""
     <style>
-        /* AGGRESSIVE container reduction */
+        /* SAFE container reduction */
         .main .block-container {
             padding-top: 0.5rem !important;
             padding-bottom: 0.5rem !important;
@@ -37,7 +32,7 @@ def apply_aggressive_compact_styling():
             margin: 0 auto !important;
         }
         
-        /* AGGRESSIVE title and header reduction */
+        /* SAFE title and header reduction */
         .main h1 {
             font-size: 1.8rem !important;
             margin-bottom: 0.2rem !important;
@@ -58,12 +53,12 @@ def apply_aggressive_compact_styling():
             margin-bottom: 0.5rem !important;
         }
         
-        /* AGGRESSIVE column spacing */
+        /* SAFE column spacing */
         .css-1r6slb0, .css-12oz5g7 {
             gap: 0.5rem !important;
         }
         
-        /* AGGRESSIVE element spacing reduction */
+        /* SAFE element spacing reduction */
         .element-container {
             margin-bottom: 0.2rem !important;
         }
@@ -123,11 +118,8 @@ def apply_aggressive_compact_styling():
             margin-bottom: 0.2rem !important;
         }
         
-        /* Code blocks - more compact */
-        .stCode {
-            font-size: 11px !important;
-            margin: 0.2rem 0 !important;
-        }
+        /* REMOVED .stCode STYLING - LET STREAMLIT HANDLE CODE NATURALLY */
+        /* This was causing the huge code blocks */
         
         /* Remove excessive spacing from specific Streamlit elements */
         div[data-testid="stVerticalBlock"] > div {
@@ -152,7 +144,7 @@ def apply_aggressive_compact_styling():
             padding-top: 0.5rem !important;
         }
         
-        /* AGGRESSIVE markdown list spacing */
+        /* SAFE markdown list spacing */
         .main ul, .main ol {
             margin: 0.2rem 0 !important;
             padding-left: 1rem !important;
@@ -253,8 +245,9 @@ def main():
         st.session_state.editor_key = 0
     if "current_code" not in st.session_state:
         st.session_state.current_code = ""
-    # Apply aggressive compact styling first
-    # apply_aggressive_compact_styling()
+    
+    # Apply SAFE compact styling - NO CODE INTERFERENCE
+    apply_safe_compact_styling()
     
     # Initialize session state
     SessionManager.initialize_session_state()
@@ -299,7 +292,8 @@ def main():
 
             # Show debug info in the UI
             st.markdown(f"**DEBUG** random‐example category: `{category}`")
-            st.code(code, language="python")
+            # NO CODE BLOCKS - just show as text
+            st.text(code)
 
 if __name__ == "__main__":
     main()

@@ -16,7 +16,7 @@ class UIComponents:
     
     @staticmethod
     def render_chat_message(message):
-        """Render a single chat message with proper code formatting."""
+        """Render a single chat message with proper formatting - NO CODE BLOCKS."""
         # Multiple ways to detect if this is an assistant message
         is_assistant = False
         
@@ -36,6 +36,10 @@ class UIComponents:
         elif hasattr(message, 'role') and hasattr(message.role, 'value') and message.role.value.lower() in ['assistant', 'bot']:
             is_assistant = True
         
+        # Force a test: if content contains "Claude:" assume it's assistant
+        if "🤖 Claude:" in content or content.startswith("Perfect! I've loaded") or content.startswith("👋 Welcome"):
+            is_assistant = True
+        
         # Get content safely
         content = ""
         if hasattr(message, 'content'):
@@ -45,11 +49,7 @@ class UIComponents:
         else:
             content = str(message)
         
-        # Force a test: if content contains "Claude:" assume it's assistant
-        if "🤖 Claude:" in content or content.startswith("Perfect! I've loaded") or content.startswith("👋 Welcome"):
-            is_assistant = True
-        
-        # Process content for better formatting
+        # Process content for better formatting - NO CODE BLOCKS
         processed_content = UIComponents.format_message_content(content)
         
         if is_assistant:
@@ -71,36 +71,49 @@ class UIComponents:
     
     @staticmethod
     def format_message_content(content: str) -> str:
-        """Format message content with proper code blocks and styling."""
+        """Format message content - NO CODE BLOCKS, preserve all other formatting."""
         # Format **bold** text FIRST (before single asterisks)
         content = re.sub(r'\*\*([^*\n]+)\*\*', r'<strong>\1</strong>', content)
         
         # Format italic text AFTER bold (for submission messages) - be more careful about asterisks
         content = re.sub(r'(?<!\*)\*([^*\n]+)\*(?!\*)', r'<em style="color: #666; font-style: italic;">\1</em>', content)
         
-        # Replace code blocks with proper HTML formatting
+        # REPLACE CODE BLOCKS WITH INDENTED TEXT - NO BACKGROUNDS
+        def format_code_as_text(match):
+            language = match.group(1) if match.group(1) else "Code"
+            code_content = match.group(2).strip()
+            
+            # Format as simple indented text
+            lines = code_content.split('\n')
+            formatted_lines = [f"<strong>{language.upper()}:</strong>"]
+            for line in lines:
+                formatted_lines.append(f"&nbsp;&nbsp;&nbsp;&nbsp;{line}")
+            
+            return '<br>'.join(formatted_lines)
+        
+        # Replace code blocks with formatted text - NO MORE ``` BLOCKS
         content = re.sub(
             r'```(\w+)?\n?(.*?)```', 
-            lambda m: f'<div style="background-color: #f5f5f5; border-left: 4px solid #007acc; padding: 8px; margin: 8px 0; border-radius: 4px; font-family: monospace; white-space: pre-wrap; overflow-x: auto;"><code>{m.group(2).strip()}</code></div>',
+            format_code_as_text,
             content, 
             flags=re.DOTALL
         )
         
-        # Replace inline code with proper formatting - be more specific about backticks
+        # Replace inline code with simple formatting - NO BACKGROUND
         content = re.sub(
             r'`([^`\n]+)`',
-            r'<code style="background-color: #f1f1f1; padding: 2px 4px; border-radius: 3px; font-family: monospace;">\1</code>',
+            r'<strong style="font-family: monospace;">\1</strong>',
             content
         )
         
-        # Format error sections with better styling
+        # Format error sections with better styling - PRESERVE
         content = re.sub(
             r'\*\*Error:\*\* ([^\n]+)',
             r'<div style="color: #d32f2f; font-weight: bold; margin: 4px 0;">🚨 Error: \1</div>',
             content
         )
         
-        # Format success messages
+        # Format success messages - PRESERVE
         content = re.sub(
             r'✅ \*\*([^*]+)\*\*',
             r'<div style="color: #2e7d2e; font-weight: bold; margin: 4px 0;">✅ \1</div>',
