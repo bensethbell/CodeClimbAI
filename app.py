@@ -96,24 +96,25 @@ def create_welcome_popup():
 
 def create_simple_welcome_popup():
     """Create a Streamlit-compatible welcome popup using native components."""
-    # Use Streamlit's native success container for better compatibility
-    st.success("🚀 **Welcome to CodeClimbAI!**")
-    
-    st.markdown("""
-    ### Learn by discovery, not by memorization.
-    
-    **🧠 Our Philosophy:**
-    - **Questions over answers** - We guide you to insights through Socratic questioning
-    - **Practice with real code** - No theoretical examples, work with actual optimization problems  
-    - **Adaptive learning** - Questions adjust to your skill level and progress
-    - **Safe exploration** - Experiment freely with code execution in a protected environment
-    
-    **🎯 Ready to start?**
-    - **Option 1:** Click the **"Generate Example"** button in the left panel to load sample code
-    - **Option 2:** Paste your own Python code in the left editor and click "📤 Submit Code"
-    
-    💡 *Remember: There are no wrong answers, only learning opportunities!*
-    """)
+    # Use container for better visual grouping
+    with st.container():
+        st.success("🚀 **Welcome to CodeClimbAI!**")
+        
+        st.markdown("""
+        ### Learn by discovery, not by memorization.
+        
+        **🧠 Our Philosophy:**
+        - **Questions over answers** - We guide you to insights through Socratic questioning
+        - **Practice with real code** - No theoretical examples, work with actual optimization problems  
+        - **Adaptive learning** - Questions adjust to your skill level and progress
+        - **Safe exploration** - Experiment freely with code execution in a protected environment
+        
+        **🎯 Ready to start?**
+        - **Option 1:** Click the **"Generate Example"** button in the left panel to load sample code
+        - **Option 2:** Paste your own Python code in the left editor and click "📤 Submit Code"
+        
+        💡 *Remember: There are no wrong answers, only learning opportunities!*
+        """)
 
 def create_compact_welcome_banner():
     """Create a more compact welcome banner for returning users."""
@@ -142,12 +143,7 @@ def create_compact_welcome_banner_streamlit():
 def render_welcome_popup():
     """Render the welcome popup if appropriate."""
     if should_show_welcome_popup():
-        # Create a prominent container for the welcome popup using BOTH methods
-        # Option 1: HTML version (original)
-        welcome_html = create_welcome_popup()
-        st.markdown(welcome_html, unsafe_allow_html=True)
-        
-        # Option 2: Streamlit native version (enhanced)
+        # Use ONLY Streamlit native approach - no HTML to avoid rendering issues
         create_simple_welcome_popup()
         
         # Create dismissal mechanism
@@ -178,11 +174,7 @@ def render_appropriate_welcome():
            not st.session_state.session or
            len(st.session_state.session.conversation_history) < 3)):
         
-        # Option 1: HTML banner (original)
-        compact_banner = create_compact_welcome_banner()
-        st.markdown(compact_banner, unsafe_allow_html=True)
-        
-        # Option 2: Streamlit native banner (enhanced)
+        # Use ONLY Streamlit native approach - no HTML to avoid rendering issues
         create_compact_welcome_banner_streamlit()
         
         return True
@@ -396,6 +388,43 @@ def render_sidebar_instructions():
         """)
         
         # Tips & Commands section
+def render_sidebar_instructions():
+    """Render comprehensive instructions in the sidebar."""
+    with st.sidebar:
+        st.markdown("# 📖 Instructions & Help")
+        
+        # Quick Start section
+        st.markdown("## 🚀 Quick Start")
+        st.markdown("""
+        1. **Click "Generate Example"** in the left panel to load sample code
+        2. **Click "📤 Submit Code"** to begin learning
+        3. **Answer the questions** Claude asks about your code
+        4. **Make improvements** and resubmit to continue learning
+        """)
+        
+        # How Claude Helps section
+        st.markdown("## 🤖 How Claude Helps")
+        st.markdown("""
+        **Socratic Learning:** Claude asks questions to guide you to discoveries rather than just giving answers.
+        
+        **Adaptive Coaching:** Questions adjust based on your progress and understanding level.
+        
+        **Real Code Testing:** Your code is executed with generated test data to ensure it works.
+        """)
+        
+        # During Sessions section  
+        st.markdown("## 🎯 During Learning Sessions")
+        st.markdown("""
+        **Answer Questions:** Engage with Claude's questions about optimization opportunities
+        
+        **Ask for Hints:** Type 'hint' or click hint buttons when you're stuck
+        
+        **Submit Improvements:** Make changes to your code and resubmit to see how you're progressing
+        
+        **Explore Deeper:** Ask follow-up questions about concepts you're learning
+        """)
+        
+        # Tips & Commands section
         st.markdown("## 💡 Tips & Commands")
         st.markdown("""
         **UI Actions:**
@@ -431,6 +460,28 @@ def render_sidebar_instructions():
                     st.code(code[:60] + "..." if len(code) > 60 else code, language="python")
                     if i < len(st.session_state.code_history):
                         st.markdown("---")
+        
+        # CRITICAL DEBUG: Show what example code is being generated
+        if hasattr(st.session_state, 'current_code') and st.session_state.current_code:
+            with st.expander("🐛 Example Debug Info", expanded=False):
+                st.markdown("**Current Code Preview:**")
+                preview = st.session_state.current_code[:100] + "..." if len(st.session_state.current_code) > 100 else st.session_state.current_code
+                st.code(preview, language="python")
+                
+                # Check for optimization issues
+                has_iterrows = 'iterrows' in st.session_state.current_code.lower()
+                has_string_concat = '+=' in st.session_state.current_code
+                has_nested_loops = st.session_state.current_code.count('for ') > 1
+                
+                st.markdown("**Issue Detection:**")
+                st.write(f"❌ Has iterrows(): {has_iterrows}")
+                st.write(f"❌ Has string concat: {has_string_concat}")  
+                st.write(f"❌ Has nested loops: {has_nested_loops}")
+                
+                if not (has_iterrows or has_string_concat or has_nested_loops):
+                    st.error("🚨 NO ISSUES DETECTED - Example appears optimized!")
+                else:
+                    st.success("✅ Learning issues detected in code")
 
 def main():
     """Main application function."""
