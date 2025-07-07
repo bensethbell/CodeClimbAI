@@ -110,9 +110,9 @@ class MessageRenderer:
         content = re.sub(r'(?<!\*)\*([^*\n]+)\*(?!\*)', r'<em style="color: #666; font-style: italic; font-size: 13px;">\1</em>', content)
         
         # Replace code blocks with STREAMLIT CLOUD-OPTIMIZED formatting
-        content = re.sub(
-            r'```(\w+)?\n?(.*?)```', 
-            lambda m: f'''<div style="
+        def format_code_block(match):
+            code_content = match.group(2).strip()
+            return f'''<div style="
                 background-color: #f5f5f5; 
                 border-left: 3px solid #007acc; 
                 padding: 4px 6px; 
@@ -137,75 +137,67 @@ class MessageRenderer:
                 white-space: pre-wrap !important;
                 font-family: 'Courier New', monospace !important;
                 font-size: 10px !important;
-            ">{m.group(2).strip()}</code></div>''',
-            content, 
-            flags=re.DOTALL
-        )
+            ">{code_content}</code></div>'''
+        
+        content = re.sub(r'```(\w+)?\n?(.*?)```', format_code_block, content, flags=re.DOTALL)
         
         # Replace inline code with STREAMLIT CLOUD-OPTIMIZED formatting
         content = re.sub(
             r'`([^`\n]+)`',
-            r'''<code style="
-                background-color: #f1f1f1 !important; 
-                padding: 1px 2px !important; 
-                border-radius: 2px !important; 
-                font-family: 'Courier New', monospace !important; 
-                font-size: 10px !important;
-                word-break: break-all !important;
-                overflow-wrap: break-word !important;
-                max-width: 100% !important;
-                display: inline-block !important;
-            ">\1</code>''',
+            r'<code style="background-color: #f1f1f1 !important; padding: 1px 2px !important; border-radius: 2px !important; font-family: \'Courier New\', monospace !important; font-size: 10px !important; word-break: break-all !important; overflow-wrap: break-word !important; max-width: 100% !important; display: inline-block !important;">\1</code>',
+            content
+        )
+        
+        # Format error sections with RESPONSIVE styling
+        content = re.sub(
+            r'\*\*Error:\*\* ([^\n]+)',
+            r'<div style="color: #d32f2f; font-weight: bold; margin: 3px 0; font-size: 13px; word-wrap: break-word; overflow-wrap: break-word;">🚨 Error: \1</div>',
+            content
+        )
+        
+        # Format success messages with RESPONSIVE styling
+        content = re.sub(
+            r'✅ \*\*([^*]+)\*\*',
+            r'<div style="color: #2e7d2e; font-weight: bold; margin: 3px 0; font-size: 13px; word-wrap: break-word; overflow-wrap: break-word;">✅ \1</div>',
             content
         )
         
         # Format MCQ OPTIONS with STREAMLIT CLOUD-OPTIMIZED styling
         content = re.sub(
             r'(\*\*Options:\*\*)',
-            r'''<div style="
-                font-weight: bold !important; 
-                margin: 6px 0 3px 0 !important; 
-                font-size: 12px !important;
-                word-wrap: break-word !important;
-                width: 100% !important;
-                box-sizing: border-box !important;
-            ">\1</div>''',
+            r'<div style="font-weight: bold !important; margin: 6px 0 3px 0 !important; font-size: 12px !important; word-wrap: break-word !important; width: 100% !important; box-sizing: border-box !important;">\1</div>',
             content
         )
         
         # Format individual MCQ options with AGGRESSIVE containment for Streamlit Cloud
-        content = re.sub(
-            r'^([A-D]\)) (.+)
-        
-        # Convert line breaks to HTML
-        content = content.replace('\n', '<br>')
-        
-        return content
-    
-    @staticmethod
-    def render_welcome_message():
-        """Render the welcome message with compact styling."""
-        welcome_msg = ChatMessage(
-            MessageRole.ASSISTANT,
-            "👋 Welcome! Let's learn through discovery.<br><br><strong>Quick start:</strong><br>• <strong>Type \"example\"</strong> below to get sample code<br>• <strong>Paste your own code</strong> on the left<br>• <strong>Click \"📤 Submit Code\"</strong> to begin learning<br><br>📖 <strong>Full instructions available on the right</strong> - click the dropdown to expand! Ready to start? 🚀"
+        # Use simpler string formatting to avoid quote conflicts
+        mcq_style = (
+            "margin: 1px 0 !important; "
+            "padding: 2px 3px !important; "
+            "font-size: 11px !important; "
+            "line-height: 1.2 !important; "
+            "word-wrap: break-word !important; "
+            "overflow-wrap: break-word !important; "
+            "word-break: break-word !important; "
+            "max-width: 100% !important; "
+            "width: 100% !important; "
+            "box-sizing: border-box !important; "
+            "hyphens: auto !important; "
+            "display: block !important;"
         )
-        MessageRenderer.render_chat_message(welcome_msg),
-            r'''<div style="
-                margin: 1px 0 !important; 
-                padding: 2px 3px !important; 
-                font-size: 11px !important; 
-                line-height: 1.2 !important;
-                word-wrap: break-word !important;
-                overflow-wrap: break-word !important;
-                word-break: break-word !important;
-                max-width: 100% !important;
-                width: 100% !important;
-                box-sizing: border-box !important;
-                hyphens: auto !important;
-                display: block !important;
-            "><strong>\1</strong> \2</div>''',
+        
+        content = re.sub(
+            r'^([A-D])\) (.+)$',
+            f'<div style="{mcq_style}"><strong>\\1)</strong> \\2</div>',
             content,
             flags=re.MULTILINE
+        )
+        
+        # Format response instructions with RESPONSIVE styling
+        content = re.sub(
+            r'(\*\*💬 How to respond:\*\* .+)',
+            r'<div style="font-style: italic; color: #666; margin: 6px 0; font-size: 12px; word-wrap: break-word; overflow-wrap: break-word;">\1</div>',
+            content
         )
         
         # Convert line breaks to HTML
