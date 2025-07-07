@@ -67,17 +67,22 @@ class SessionManager:
     @staticmethod
     def start_new_session(code: str, assistant: CodeReviewAssistant) -> ReviewSession:
         """Start a new review session with adaptive coaching."""
-        # Initialize coaching state
-        coaching_state = CoachingState()
-        adaptive_coach = AdaptiveCoach(assistant.analyzer)
-        
-        # First, try to execute the code to check for errors
-        execution_result = CodeExecutor.execute_code_safely(code)
-        
-        if not execution_result['success']:
-            # If there's an error, create a session focused on debugging
-            goal = "Error debugging"
-            question = f"""I tried to run your code and found an error that needs to be fixed first:
+        try:
+            # Import here to ensure it's available in deployment
+            from .coaching_models import CoachingState
+            from .adaptive_coach import AdaptiveCoach
+            
+            # Initialize coaching state
+            coaching_state = CoachingState()
+            adaptive_coach = AdaptiveCoach(assistant.analyzer)
+            
+            # First, try to execute the code to check for errors
+            execution_result = CodeExecutor.execute_code_safely(code)
+            
+            if not execution_result['success']:
+                # If there's an error, create a session focused on debugging
+                goal = "Error debugging"
+                question = f"""I tried to run your code and found an error that needs to be fixed first:
 
 **Error:** {execution_result['error']}
 
@@ -91,15 +96,32 @@ class SessionManager:
 Let's fix this error before we optimize the code. Can you identify what's causing this issue and how to fix it?
 
 Take a look at the error message and share your thoughts, or ask for a hint if you need guidance."""
-        else:
-            # Code runs successfully - use adaptive coaching
-            coaching_response, coaching_mode = adaptive_coach.process_code_submission(code, coaching_state)
-            goal = "Active learning and optimization"
-            question = coaching_response
-            
-            # Add execution info if we generated data
-            if execution_result['fake_data_info']:
-                question += f"\n\n*Note: {execution_result['fake_data_info']} to test your code.*"
+            else:
+                # Code runs successfully - use adaptive coaching
+                coaching_response, coaching_mode = adaptive_coach.process_code_submission(code, coaching_state)
+                goal = "Active learning and optimization"
+                question = coaching_response
+                
+                # Add debug info for deployment troubleshooting
+                add_debug_message(f"MCQ system activated: {coaching_mode}")
+                add_debug_message(f"Question length: {len(question)} chars")
+                
+                # Add execution info if we generated data
+                if execution_result['fake_data_info']:
+                    question += f"\n\n*Note: {execution_result['fake_data_info']} to test your code.*"
+        
+        except ImportError as e:
+            # Fallback if adaptive coaching fails to import
+            add_debug_message(f"❌ Import error in adaptive coaching: {str(e)}")
+            goal = "Performance optimization"
+            question = assistant.get_focused_question(code, goal)
+            coaching_state = None
+        except Exception as e:
+            # Fallback for any other adaptive coaching errors
+            add_debug_message(f"❌ Error in adaptive coaching: {str(e)}")
+            goal = "Performance optimization" 
+            question = assistant.get_focused_question(code, goal)
+            coaching_state = None
         
         session = ReviewSession(
             original_code=code,

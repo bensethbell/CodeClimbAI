@@ -260,36 +260,55 @@ What aspect would you like to focus on: performance, readability, or error handl
     
     def _format_question_message(self, question: LearningQuestion) -> str:
         """Format a learning question for display in chat."""
-        message = f"📚 **{question.title}** ({question.question_type.value.upper()})\n\n"
-        message += f"{question.question_text}\n\n"
+        try:
+            message = f"📚 **{question.title}** ({question.question_type.value.upper()})\n\n"
+            message += f"{question.question_text}\n\n"
+            
+            # Add toy code if present
+            if question.toy_code:
+                message += f"```python\n{question.toy_code}\n```\n\n"
+            
+            # Add options for multiple choice with clear response format
+            if question.is_multiple_choice() and question.options:
+                message += "**Options:**\n"
+                for i, option in enumerate(question.options):
+                    letter = chr(ord('A') + i)
+                    message += f"{letter}) {option.text}\n"
+                message += "\n**💬 How to respond:** Type just the letter (A, B, C, or D)\n"
+                
+                # Debug: Log successful MCQ formatting
+                try:
+                    from .session_manager import add_debug_message
+                    add_debug_message(f"✅ MCQ formatted with {len(question.options)} options")
+                except:
+                    pass  # Debug logging is optional
+            
+            elif question.question_type == QuestionType.TRUE_FALSE:
+                message += "**💬 How to respond:** Type 'True' or 'False'\n"
+            
+            elif question.question_type == QuestionType.TOY_EXAMPLE:
+                message += "**💬 How to respond:** Tell me which option you think is better and briefly why\n"
+            
+            elif question.question_type == QuestionType.SPOT_BUG:
+                message += "**💬 How to respond:** Describe what you think the issue is\n"
+            
+            elif question.question_type == QuestionType.WHAT_IF:
+                message += "**💬 How to respond:** Explain what you think would happen\n"
+            
+            else:
+                message += "**💬 How to respond:** Share your thoughts\n"
+            
+            return message
+            
+        except Exception as e:
+            # Fallback formatting if there's an error
+            try:
+                from .session_manager import add_debug_message
+                add_debug_message(f"❌ Question formatting error: {str(e)}")
+            except:
+                pass  # Debug logging is optional
+            return f"**Question:** {question.question_text}\n\n**How to respond:** Share your thoughts"
         
-        # Add toy code if present
-        if question.toy_code:
-            message += f"```python\n{question.toy_code}\n```\n\n"
-        
-        # Add options for multiple choice with clear response format
-        if question.is_multiple_choice():
-            for option in question.options:
-                message += f"{option.text}\n"
-            message += "\n**💬 How to respond:** Type just the letter (A, B, C, or D)"
-        
-        elif question.question_type == QuestionType.TRUE_FALSE:
-            message += "**💬 How to respond:** Type 'True' or 'False'"
-        
-        elif question.question_type == QuestionType.TOY_EXAMPLE:
-            message += "**💬 How to respond:** Tell me which option you think is better and briefly why"
-        
-        elif question.question_type == QuestionType.SPOT_BUG:
-            message += "**💬 How to respond:** Describe what you think the issue is"
-        
-        elif question.question_type == QuestionType.WHAT_IF:
-            message += "**💬 How to respond:** Explain what you think would happen"
-        
-        else:
-            message += "**💬 How to respond:** Share your thoughts"
-        
-        return message
-    
     def _evaluate_answer(self, user_answer: str, question: LearningQuestion) -> Tuple[bool, str]:
         """
         Evaluate user's answer to a question.
