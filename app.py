@@ -254,7 +254,7 @@ def main():
     if "current_code" not in st.session_state:
         st.session_state.current_code = ""
     # Apply aggressive compact styling first
-    apply_aggressive_compact_styling()
+    # apply_aggressive_compact_styling()
     
     # Initialize session state
     SessionManager.initialize_session_state()
