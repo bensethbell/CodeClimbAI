@@ -16,16 +16,20 @@ class PanelRenderer:
     @staticmethod
     def render_code_input_panel():
         """Render the left panel for code input."""
-        st.markdown("### 📝 Your Code")  # CHANGED: st.header() → st.markdown() for compact
+        st.markdown("### 📝 Your Code")
         
-        # IDE-like code input area
+        # Initialize editor key if not exists
+        if 'editor_key' not in st.session_state:
+            st.session_state.editor_key = 0
+        
+        # IDE-like code input area with key rotation for forced refresh
         if ACE_AVAILABLE:
-            # Use proper code editor with syntax highlighting and tab support
+            # Use proper code editor with syntax highlighting and ROTATING KEY
             code_input = st_ace(
                 value=st.session_state.current_code,
                 language='python',
                 theme=CODE_EDITOR_THEME,
-                key="code_editor",
+                key=f"code_editor_{st.session_state.editor_key}",  # CRITICAL: Rotating key
                 height=CODE_EDITOR_HEIGHT,
                 auto_update=True,
                 tab_size=CODE_EDITOR_TAB_SIZE,
@@ -35,7 +39,7 @@ class PanelRenderer:
                 show_print_margin=True
             )
         else:
-            # Fallback to enhanced text_area with better tab support
+            # Fallback to enhanced text_area with ROTATING KEY
             st.info("💡 **For better code editing:** `pip install streamlit-ace` then restart the app")
             
             code_input = st.text_area(
@@ -44,12 +48,18 @@ class PanelRenderer:
                 height=CODE_EDITOR_HEIGHT,
                 placeholder="Type 'example' in the chat to get sample code, or paste your own code here...",
                 help="Install streamlit-ace for syntax highlighting and better tab support",
-                key="main_code_input"
+                key=f"main_code_input_{st.session_state.editor_key}"  # CRITICAL: Rotating key
             )
         
-        # Update current_code when user types
-        if code_input != st.session_state.current_code:
-            st.session_state.current_code = code_input
+        # Update current_code when user types - with error handling
+        try:
+            if code_input != st.session_state.current_code:
+                st.session_state.current_code = code_input
+        except Exception as e:
+            st.error(f"Error updating code: {str(e)}")
+            # Initialize if missing
+            if 'current_code' not in st.session_state:
+                st.session_state.current_code = ""
         
         # Buttons for code actions - single submit button
         if st.button("📤 Submit Code", type="primary", use_container_width=True):
@@ -61,15 +71,6 @@ class PanelRenderer:
     @staticmethod
     def render_getting_started_section():
         """Render the getting started instructions."""
-        # st.subheader("How To Use")
-        
-        # if ACE_AVAILABLE:
-        #     st.success("✅ Code editor with syntax highlighting and proper tab indentation is active!")
-        # else:
-        #     st.info("💡 **Pro tip:** Install `streamlit-ace` for a better code editing experience with syntax highlighting!")
-        #     st.markdown("**To install the enhanced code editor:**")
-        #     st.code("pip install streamlit-ace", language="bash")
-        
         st.info(
             "Paste or write your code here, run it, or ask Claude for an example — and learn as you go!"
         )
@@ -77,14 +78,14 @@ class PanelRenderer:
     @staticmethod
     def render_chat_panel(assistant):
         """Render the middle panel for chat interface."""
-        st.markdown("### 🤖 Claude Assistant")  # CHANGED: st.header() → st.markdown() for compact
+        st.markdown("### 🤖 Claude Assistant")
         
         # Show current goal if session is active
         if st.session_state.session and st.session_state.session.is_active:
             st.info(f"🎯 **Primary Focus:** {st.session_state.session.goal}")
         
         # Conversation area with native Streamlit container and max height
-        st.markdown("#### 💬 Conversation")  # CHANGED: st.subheader() → st.markdown() for compact
+        st.markdown("#### 💬 Conversation")
         
         # Use native Streamlit container with height limit and auto-scroll
         with st.container(height=CHAT_CONTAINER_HEIGHT):
@@ -107,13 +108,13 @@ class PanelRenderer:
     @staticmethod
     def render_user_input_area(assistant):
         """Render user input area and handle message submission."""
-        st.markdown("#### 💭 Your Response")  # CHANGED: st.subheader() → st.markdown() for compact
+        st.markdown("#### 💭 Your Response")
         
         # Simple form without complex keys
         with st.form("chat_form", clear_on_submit=True):
             user_input = st.text_area(
                 "Type your message:",
-                height=80,  # CHANGED: height=100 → height=80 for compact
+                height=80,  # Reduced from 100 for compact styling
                 placeholder="Type 'example' to get sample code, or ask me anything...",
                 help="Press Ctrl+Enter to send"
             )
@@ -163,7 +164,7 @@ class PanelRenderer:
                     st.error(f"Error getting new question: {str(e)}")
         
         # Session control buttons
-        st.markdown("#### 🎯 Session Actions")  # CHANGED: st.subheader() → st.markdown() for compact
+        st.markdown("#### 🎯 Session Actions")
         col2_4, col2_5 = st.columns(2)
         
         with col2_4:
@@ -193,7 +194,7 @@ class PanelRenderer:
     @staticmethod
     def render_instructions_panel():
         """Render the right panel with properly collapsible instructions."""
-        st.markdown("### 📖 Help")  # CHANGED: st.header() → st.markdown() for compact
+        st.markdown("### 📖 Help")
         
         # Quick tips always visible at top  
         st.markdown("**🚀 Quick Start:**")
@@ -205,7 +206,7 @@ class PanelRenderer:
         if hasattr(st.session_state, 'debug_messages') and st.session_state.debug_messages:
             with st.expander("🔧 **Debug Info**", expanded=True):
                 st.markdown("**Latest activity:**")
-                for debug_msg in st.session_state.debug_messages[-4:]:  # KEPT: Show last 4 debug messages as original
+                for debug_msg in st.session_state.debug_messages[-4:]:  # Show last 4 debug messages as original
                     st.text(debug_msg)
         
         # Compact collapsible detailed instructions

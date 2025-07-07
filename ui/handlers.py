@@ -30,16 +30,13 @@ class InputHandler:
             else:
                 InputHandler.handle_regular_chat(clean_input, assistant)
             
-            # Force rerun to update UI
-            st.rerun()
-            
         except Exception as e:
             st.error(f"Error processing message: {str(e)}")
             add_debug_message(f"❌ Error in handle_user_message: {str(e)}")
     
     @staticmethod
     def handle_example_command():
-        """Handle the 'example' command with enhanced debugging."""
+        """Handle the 'example' command with UI refresh fix."""
         try:
             add_debug_message("📝 Starting example command")
             
@@ -51,6 +48,12 @@ class InputHandler:
             if 'current_code' not in st.session_state:
                 st.session_state.current_code = ""
                 add_debug_message("📝 Initialized current_code in session state")
+            
+            # CRITICAL: Force UI refresh by rotating component key
+            if 'editor_key' not in st.session_state:
+                st.session_state.editor_key = 0
+            st.session_state.editor_key += 1
+            add_debug_message(f"📝 Rotated editor key to: {st.session_state.editor_key}")
             
             # Set the code in session state
             st.session_state.current_code = example_code
@@ -74,11 +77,12 @@ class InputHandler:
             # Add to conversation using the helper
             add_message_to_session(st.session_state.session, MessageRole.USER, "example")
             add_message_to_session(st.session_state.session, MessageRole.ASSISTANT, 
-                "Perfect! I've loaded a pandas data processing example with several optimization opportunities. "
-                "The code is now in the left panel - you can click '📤 Submit Code' to begin our learning session! "
-                "\n\n*When you start the review, I'll generate fake sales data (1000 rows) and test your code to make sure it runs correctly.*")
+                "✅ **Example loaded!** Pandas optimization code is now in the editor. Click '📤 Submit Code' to begin learning!")
             
             add_debug_message("📝 Example command completed successfully")
+            
+            # CRITICAL: Force rerun OUTSIDE of form context
+            st.rerun()
             
         except Exception as e:
             st.error(f"Error loading example: {str(e)}")
