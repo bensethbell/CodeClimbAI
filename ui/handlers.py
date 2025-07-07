@@ -98,15 +98,17 @@ class InputHandler:
         try:
             if st.session_state.session.current_code.strip():
                 execution_result = CodeExecutor.execute_code_safely(st.session_state.session.current_code)
-                
+                    
+                # filepath: ui/handlers.py
                 if execution_result['success']:
+                    output_block = f"**Output:**\n```\n{execution_result['output']}\n```" if execution_result['output'] else ""
                     response = f"""✅ **Code executed successfully!**
 
-{execution_result['fake_data_info'] if execution_result['fake_data_info'] else ''}
+                {execution_result['fake_data_info'] if execution_result['fake_data_info'] else ''}
 
-{f"**Output:**\n```\n{execution_result['output']}\n```" if execution_result['output'] else ""}
+                {output_block}
 
-Great! Your code runs without errors. Now let's focus on optimization."""
+                Great! Your code runs without errors. Now let's focus on optimization."""
                 else:
                     response = f"""❌ **Code execution failed:**
 

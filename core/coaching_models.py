@@ -78,7 +78,9 @@ class CoachingState:
     total_questions_asked: int = 0
     correct_answers: int = 0
     learning_progress: Dict[str, Any] = field(default_factory=dict)
-    
+    main_issue: Optional[str] = None  # Track the main issue for the session
+    resolved_issues: set = field(default_factory=set)  # Track resolved issues
+        
     def get_success_rate(self) -> float:
         """Calculate the user's success rate on questions."""
         if self.total_questions_asked == 0:
@@ -106,3 +108,6 @@ class CoachingState:
             # Move to history
             self.interaction_history.append(self.current_interaction)
             self.current_interaction = None
+            
+    def __post_init__(self):
+        print("DEBUG: CoachingState initialized:", self)

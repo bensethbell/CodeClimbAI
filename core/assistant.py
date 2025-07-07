@@ -5,12 +5,19 @@ Main code review assistant class.
 from .prompts import PromptTemplates
 from .analyzer import ClaudeAPIClient, CodeAnalyzer
 from .models import ReviewSession
+from .adaptive_coach import AdaptiveCoach
 
 class CodeReviewAssistant:
     """Main assistant class with improved separation of concerns."""
     
     def __init__(self, api_client: ClaudeAPIClient):
         self.api_client = api_client
+
+        # Instantiate the adaptive coach so we can call its example loader:
+        code_analyzer = CodeAnalyzer()            # no constructor args
+        code_analyzer.api_client = api_client     # attach the API client manually
+
+        self.coach = AdaptiveCoach(code_analyzer)
         self.analyzer = CodeAnalyzer()
     
     def analyze_code_and_get_goal(self, code: str) -> str:

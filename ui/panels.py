@@ -10,26 +10,53 @@ from core.session_manager import SessionManager
 if ACE_AVAILABLE:
     from streamlit_ace import st_ace
 
+def _load_debug_example(assistant):
+    """Callback to inject a random example into the code editor."""
+    from templates.examples import ExampleGenerator
+
+    code, category = ExampleGenerator.get_random_example(
+        exclude_code=assistant.coach.first_example_code
+    )
+    st.session_state.current_code = code
+    st.session_state.editor_key += 1
+    # st.rerun()
+
 class PanelRenderer:
     """Handles rendering of main UI panels."""
-    
     @staticmethod
     def render_code_input_panel():
-        """Render the left panel for code input."""
+        # ───── Initialize editor state ─────
+        if "editor_key" not in st.session_state:
+            st.session_state["editor_key"] = 0
+        if "current_code" not in st.session_state:
+            st.session_state["current_code"] = ""
+
+        # # ──── Inject debug snippet if requested ────
+        # if st.session_state.get("debug_inject_code"):
+        #     st.session_state.current_code = st.session_state.debug_inject_code
+        #     st.session_state.editor_key += 1
+        #     del st.session_state["debug_inject_code"]
+        #     st.experimental_rerun()
+# ─────────── INLINE DEBUG BUTTON ───────────
+        if st.button("🐞 Load Random Example Inline", key="load_rand_inline"):
+            from templates.examples import ExampleGenerator
+            code, _ = ExampleGenerator.get_random_example(
+                exclude_code=assistant.coach.first_example_code
+            )
+            st.session_state.current_code = code
+            st.session_state.editor_key += 1
+            st.rerun()
+
         st.markdown("### 📝 Your Code")
-        
-        # Initialize editor key if not exists
-        if 'editor_key' not in st.session_state:
-            st.session_state.editor_key = 0
-        
-        # IDE-like code input area with key rotation for forced refresh
+
+        # IDE-like code input area with dynamic key
+        dynamic_key = f"code_editor_{st.session_state['editor_key']}"
         if ACE_AVAILABLE:
-            # Use proper code editor with syntax highlighting and ROTATING KEY
             code_input = st_ace(
-                value=st.session_state.current_code,
+                value=st.session_state["current_code"],
+                key=dynamic_key,
                 language='python',
                 theme=CODE_EDITOR_THEME,
-                key=f"code_editor_{st.session_state.editor_key}",  # CRITICAL: Rotating key
                 height=CODE_EDITOR_HEIGHT,
                 auto_update=True,
                 tab_size=CODE_EDITOR_TAB_SIZE,
@@ -39,34 +66,25 @@ class PanelRenderer:
                 show_print_margin=True
             )
         else:
-            # Fallback to enhanced text_area with ROTATING KEY
-            st.info("💡 **For better code editing:** `pip install streamlit-ace` then restart the app")
-            
+            st.info("💡 **For better code editing:** `pip install streamlit-ace` then restart")
             code_input = st.text_area(
                 "Enter your code here:",
-                value=st.session_state.current_code,
+                value=st.session_state["current_code"],
+                key=dynamic_key,
                 height=CODE_EDITOR_HEIGHT,
-                placeholder="Type 'example' in the chat to get sample code, or paste your own code here...",
-                help="Install streamlit-ace for syntax highlighting and better tab support",
-                key=f"main_code_input_{st.session_state.editor_key}"  # CRITICAL: Rotating key
+                placeholder="Type 'example' in the chat to get sample code, or paste your own code here..."
             )
-        
-        # Update current_code when user types - with error handling
-        try:
-            if code_input != st.session_state.current_code:
-                st.session_state.current_code = code_input
-        except Exception as e:
-            st.error(f"Error updating code: {str(e)}")
-            # Initialize if missing
-            if 'current_code' not in st.session_state:
-                st.session_state.current_code = ""
-        
-        # Buttons for code actions - single submit button
+
+        # Persist editor contents back into session state
+        if code_input != st.session_state["current_code"]:
+            st.session_state["current_code"] = code_input
+
+        # Submit button
         if st.button("📤 Submit Code", type="primary", use_container_width=True):
             SessionManager.handle_code_submission(code_input)
-        
-        # Getting started instructions
+
         PanelRenderer.render_getting_started_section()
+
     
     @staticmethod
     def render_getting_started_section():
@@ -104,6 +122,12 @@ class PanelRenderer:
         # Action buttons for active sessions
         if st.session_state.session and st.session_state.session.is_active:
             PanelRenderer.render_session_action_buttons(assistant)
+        st.button(
+        "🐞 Debug Random Example",
+        key="debug_always_visible",
+        on_click=_load_debug_example,
+        args=(assistant,)
+        )
     
     @staticmethod
     def render_user_input_area(assistant):
@@ -122,7 +146,9 @@ class PanelRenderer:
         
         if submitted and user_input.strip():
             InputHandler.handle_user_message(user_input.strip(), assistant)
-    
+            print("DEBUG: st.rerun triggered")
+            st.rerun()  # Immediately rerun to show the new message
+            
     @staticmethod
     def render_session_action_buttons(assistant):
         """Render action buttons for active sessions."""
@@ -190,5 +216,12 @@ class PanelRenderer:
             if st.button("🆕 New Session"):
                 SessionManager.reset_session()
                 st.rerun()
-    
+
+            # ─────────── DEBUG: Force a random example ───────────
+            st.button(
+                "🐞 Debug Random Example",
+                key="debug_random_example",
+                on_click=_load_debug_example,
+                args=(assistant,)
+            )
     # NOTE: render_instructions_panel() method REMOVED - now handled by sidebar

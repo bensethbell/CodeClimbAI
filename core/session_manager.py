@@ -73,9 +73,13 @@ class SessionManager:
             from .adaptive_coach import AdaptiveCoach
             
             # Initialize coaching state
-            coaching_state = CoachingState()
-            adaptive_coach = AdaptiveCoach(assistant.analyzer)
-            
+            if 'coaching_state' not in st.session_state:
+                st.session_state.coaching_state = CoachingState()
+            if 'adaptive_coach' not in st.session_state:
+                st.session_state.adaptive_coach = AdaptiveCoach(assistant.analyzer)
+
+            coaching_state = st.session_state.coaching_state
+            adaptive_coach = st.session_state.adaptive_coach
             # First, try to execute the code to check for errors
             execution_result = CodeExecutor.execute_code_safely(code)
             
@@ -306,4 +310,5 @@ Let's fix this error first before continuing with optimization. Can you identify
         st.session_state.code_history = []
         st.session_state.original_session_code = ""
         st.session_state.debug_messages = []
-        st.session_state.learning_log = getattr(st.session_state, 'learning_log', [])  # Preserve learning log
+        st.session_state.coaching_state = CoachingState()
+        st.session_state.adaptive_coach = AdaptiveCoach(None)  # Pass `None` or reinitialize as needed

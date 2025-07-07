@@ -1,3 +1,16 @@
+import os
+if os.getenv("STREAMLIT_DEBUG") == "1":
+    import debugpy
+    debugpy.listen(5678)            # pick any free port
+    print("⏳ Waiting for VS Code to attach…")
+    debugpy.wait_for_client()       # pause until the debugger connects
+    debugpy.breakpoint()            # optionally drop into debugger immediately
+
+# if os.getenv("STREAMLIT_DEBUG") == "1":
+#     import debugpy
+#     debugpy.listen(5678)
+#     print("⏳ Debugger listening on port 5678")
+
 import streamlit as st
 from core import ClaudeAPIClient, CodeReviewAssistant, SessionManager
 from ui import UIManager
@@ -236,6 +249,10 @@ def render_sidebar_instructions():
 
 def main():
     """Main application function."""
+    if "editor_key" not in st.session_state:
+        st.session_state.editor_key = 0
+    if "current_code" not in st.session_state:
+        st.session_state.current_code = ""
     # Apply aggressive compact styling first
     apply_aggressive_compact_styling()
     
@@ -270,6 +287,19 @@ def main():
     # Right column - Claude Assistant (no more Help panel)
     with col2:
         UIManager.render_chat_panel(assistant)
+        # ─────────── DEBUG: Force a random example ───────────
+        if st.button("🐞 Debug Random Example"):
+            # This will _always_ call get_random_example()
+            from templates.examples import ExampleGenerator
+
+            # Exclude the first example so we get a truly random one
+            code, category = ExampleGenerator.get_random_example(
+                exclude_code=assistant.coach.first_example_code
+            )
+
+            # Show debug info in the UI
+            st.markdown(f"**DEBUG** random‐example category: `{category}`")
+            st.code(code, language="python")
 
 if __name__ == "__main__":
     main()

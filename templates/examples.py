@@ -1,6 +1,8 @@
 """
 Example code snippets and templates for the code review assistant.
 """
+print("👀 examples.py loaded!")
+import random
 
 def get_example_code() -> str:
     """Get the main pandas optimization example."""
@@ -143,29 +145,29 @@ class ExampleGenerator:
         return categories.get(category, {})
     
     @staticmethod
-    def get_random_example(exclude_categories: list = None) -> tuple[str, str]:
-        """Get a random example with its category."""
-        import random
-        
-        all_categories = ['performance', 'readability', 'bugs', 'security']
-        
+    def get_random_example(exclude_categories: list = None, exclude_code: str = None) -> tuple[str, str]:
+        """Get a random example with its category, excluding specific code."""
+        examples = {
+            "performance": get_performance_examples(),
+            "readability": get_readability_examples(),
+            "bugs": get_bug_examples(),
+            "security": get_security_examples()
+        }
         if exclude_categories:
-            available_categories = [cat for cat in all_categories if cat not in exclude_categories]
-        else:
-            available_categories = all_categories
+            examples = {k: v for k, v in examples.items() if k not in exclude_categories}
+
+        all_examples = [(code, category) for category, codes in examples.items() for code in codes.values()]
+        if exclude_code:
+            print("DEBUG: Excluding code:", exclude_code)
+            all_examples = [(code, category) for code, category in all_examples if code != exclude_code]
+
+        if all_examples:
+            selected_example = random.choice(all_examples)
+            print("DEBUG: Selected random example:", selected_example)
+            return selected_example
+        print("DEBUG: No examples left after exclusion. Returning fallback example.")
+        return get_example_code(), "performance"  # Fallback to default example
         
-        if not available_categories:
-            return get_example_code(), "performance"
-        
-        category = random.choice(available_categories)
-        examples = ExampleGenerator.get_all_examples_by_category(category)
-        
-        if examples:
-            example_name = random.choice(list(examples.keys()))
-            return examples[example_name], category
-        else:
-            return get_example_code(), "performance"
-    
     @staticmethod
     def get_progressive_examples() -> list:
         """Get examples in order of increasing difficulty."""

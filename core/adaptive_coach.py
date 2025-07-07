@@ -1,5 +1,6 @@
 """
 Adaptive coaching system for the Learn-As-You-Go Code Review Assistant.
+FIXED: MCQ display issues for Streamlit Cloud deployment.
 """
 
 import uuid
@@ -10,6 +11,8 @@ from .coaching_models import (
 )
 from .question_templates import QuestionSelector, QuestionTemplates
 from .analyzer import CodeAnalyzer
+from templates.examples import ExampleGenerator, get_example_code
+
 
 class AdaptiveCoach:
     """
@@ -18,30 +21,101 @@ class AdaptiveCoach:
     """
     
     def __init__(self, code_analyzer: CodeAnalyzer):
+        print("DEBUG: AdaptiveCoach instance created.")
+
         self.code_analyzer = code_analyzer
         self.question_selector = QuestionSelector()
+        self.first_example_shown = False  # Track whether the first example has been shown
+        self.first_example_code = None  # Store the first example code
+        print("DEBUG: Initial state - first_example_shown:", self.first_example_shown)
+        print("DEBUG: Initial state - first_example_code:", self.first_example_code)
+    
+    def load_example_code(self) -> Tuple[str, str]:
+        """
+        Returns a tuple of (code_snippet, category).
+
+        On the very first call, returns the fixed example via get_example_code().
+        On each subsequent call, delegates to ExampleGenerator.get_random_example().
+        """
+        # First call: show the hard‐coded example, then flip the flag
+        if not self.first_example_shown:
+            self.first_example_shown = True
+            self.first_example_code = get_example_code()
+            return self.first_example_code, "performance"
+
+        # Second+ calls: fetch a random example (excluding the first)
+        example_code, category = ExampleGenerator.get_random_example(
+            exclude_code=self.first_example_code
+        )
+        # Avoid returning the same snippet twice
+        while example_code == self.first_example_code:
+            example_code, category = ExampleGenerator.get_random_example(
+                exclude_code=self.first_example_code
+            )
+        return example_code, category
+    
+    def detect_main_issue_with_claude(self, code: str) -> str:
+        """
+        Use Claude/LLM to detect the main issue or learning goal in the user's code.
+        Returns a short keyword (e.g., 'vectorization', 'readability', 'no_issue').
+        """
+        prompt = (
+            "Analyze the following Python code and identify the single most important optimization or learning opportunity for the user. "
+            "Respond with a short keyword (e.g., 'vectorization', 'readability', 'no_issue').\n\n"
+            f"Code:\n{code}"
+        )
+        # Make sure you have access to an API client for Claude
+        return self.code_analyzer.api_client.call_claude(prompt).strip().lower()
     
     def process_code_submission(self, code: str, coaching_state: CoachingState) -> Tuple[str, CoachingMode]:
-        """
-        Process a new code submission and decide on coaching approach.
-        
-        Args:
-            code: The user's submitted code
-            coaching_state: Current coaching state
-            
-        Returns:
-            Tuple of (response_message, coaching_mode)
-        """
-        # Analyze the code for patterns and issues
+        print("Processing code submission...")
         code_analysis = self._analyze_code_for_coaching(code)
-        
-        # Decide whether to ask a question or give a nudge
+
+        # Set main issue if not already set
+        if not coaching_state.main_issue:
+            if code_analysis['has_iterrows']:
+                coaching_state.main_issue = 'has_iterrows'
+            elif code_analysis['has_string_concat']:
+                coaching_state.main_issue = 'has_string_concat'
+            elif code_analysis['has_nested_loops']:
+                coaching_state.main_issue = 'has_nested_loops'
+            else:
+                coaching_state.main_issue = self.detect_main_issue_with_claude(code)
+        print("DEBUG: main_issue =", coaching_state.main_issue)
+        # Map issue keys to analysis flags
+        issue_flags = {
+            'has_iterrows': code_analysis.get('has_iterrows', False),
+            'has_string_concat': code_analysis.get('has_string_concat', False),
+            'has_nested_loops': code_analysis.get('has_nested_loops', False),
+            # Add more as needed
+        }
+        print("DEBUG: code_analysis =", code_analysis)
+        print("DEBUG: issue_flags =", issue_flags)
+        # Only show congratulations if the main issue was previously present and is now resolved
+        main_issue = coaching_state.main_issue
+        if main_issue and main_issue in issue_flags and not issue_flags[main_issue]:
+            print("DEBUG: Exiting early due to resolved main issue")
+            print("DEBUG: main_issue =", main_issue)
+            print("DEBUG: issue_flags[main_issue] =", issue_flags.get(main_issue))
+            coaching_state.resolved_issues.add(main_issue)
+            return """🎉 **Congratulations!** You've solved the main problem for this example.
+
+            Would you like to:
+            • Paste in your own code to analyze?
+            • Or type 'example' to load a new sample code snippet?
+
+            Let me know how you'd like to proceed!""", CoachingMode.NUDGE
+            
+        # Otherwise, proceed as before
+        print("Questions asked:", coaching_state.total_questions_asked)
+        print("Success rate:", coaching_state.get_success_rate())
+        print("Should ask question?", self.question_selector.should_ask_question(coaching_state, code_analysis))
         should_question = self.question_selector.should_ask_question(coaching_state, code_analysis)
-        
         if should_question:
             return self._create_learning_question(code, coaching_state, code_analysis)
         else:
-            return self._create_nudge(code, code_analysis)
+            return self._create_nudge(code, code_analysis, coaching_state)
+
     
     def handle_user_answer(self, user_answer: str, coaching_state: CoachingState) -> str:
         """
@@ -63,6 +137,11 @@ class AdaptiveCoach:
         if user_answer_lower in ['explore', 'explore further', 'tell me more']:
             return self._provide_exploration_guidance(coaching_state)
         
+        if user_answer_lower == 'example':
+            print("DEBUG: 'example' command received.")
+            example_code, category = self.load_example_code()
+            print("DEBUG: Example loaded:", example_code, category)
+            return f"Example loaded! Here's a {category} example:\n\n```python\n{example_code}\n```"
         # If waiting for answer to a specific question
         if coaching_state.is_waiting_for_answer():
             current_question = coaching_state.current_interaction.question
@@ -220,94 +299,199 @@ class AdaptiveCoach:
         
         return interaction.content, CoachingMode.QUESTION
     
-    def _create_nudge(self, code: str, analysis: Dict[str, Any]) -> Tuple[str, CoachingMode]:
-        """Create a direct nudge to help the user improve their code."""
+    def _create_nudge(self, code: str, analysis: Dict[str, Any], coaching_state: CoachingState) -> Tuple[str, CoachingMode]:
+        """Create a direct nudge to help the user improve their code, or congratulate if the main issue is solved."""
+        main_issue = coaching_state.main_issue
+
+        # Map issue keys to analysis flags
+        issue_flags = {
+            'has_iterrows': analysis.get('has_iterrows', False),
+            'has_string_concat': analysis.get('has_string_concat', False),
+            'has_nested_loops': analysis.get('has_nested_loops', False),
+            # Add more as needed
+        }
+
         if analysis['has_iterrows']:
             nudge = """🎯 **Optimization Opportunity**: I notice you're using `df.iterrows()` which is quite slow for large datasets. 
 
-**Hint**: Pandas shines with vectorized operations that work on entire columns at once. Try replacing your loop with direct column operations like `df['column1'] * df['column2']`.
+    **Hint**: Pandas shines with vectorized operations that work on entire columns at once. Try replacing your loop with direct column operations like `df['column1'] * df['column2']`.
 
-Would you like to try optimizing this part of your code?
+    Would you like to try optimizing this part of your code?
 
-💡 **Learning Options:** Want a more specific hint, or prefer to explore this with a hands-on question first?"""
+    💡 **Learning Options:** Want a more specific hint, or prefer to explore this with a hands-on question first?"""
         
         elif analysis['has_string_concat']:
             nudge = """🎯 **Performance Tip**: Building strings with `+=` in a loop can be slow for large amounts of text.
 
-**Hint**: Consider collecting your strings in a list and using `''.join(list)` at the end for better performance.
+    **Hint**: Consider collecting your strings in a list and using `''.join(list)` at the end for better performance.
 
-Want to give it a try?
+    Want to give it a try?
 
-💡 **Learning Options:** Need a hint on the exact syntax, or want to explore this concept with another question?"""
+    💡 **Learning Options:** Need a hint on the exact syntax, or want to explore this concept with another question?"""
         
         elif analysis['complexity_score'] > 6:
             nudge = """🎯 **Readability Opportunity**: Your code is getting a bit complex. 
 
-**Hint**: Consider breaking it into smaller functions with descriptive names. This makes it easier to test and understand.
+    **Hint**: Consider breaking it into smaller functions with descriptive names. This makes it easier to test and understand.
 
-What do you think about refactoring this?
+    What do you think about refactoring this?
 
-💡 **Learning Options:** Ask for guidance on refactoring approaches, or try a question about code organization principles?"""
+    💡 **Learning Options:** Ask for guidance on refactoring approaches, or try a question about code organization principles?"""
         
         else:
             nudge = """🎯 **Good work!** Your code looks functional. Let's explore some potential optimizations or improvements together.
 
-What aspect would you like to focus on: performance, readability, or error handling?
+    What aspect would you like to focus on: performance, readability, or error handling?
 
-💡 **Learning Options:** Want me to ask you a targeted question about optimization, or prefer to dive straight into improving the code?"""
+    💡 **Learning Options:** Want me to ask you a targeted question about optimization, or prefer to dive straight into improving the code?"""
         
         return nudge, CoachingMode.NUDGE
     
     def _format_question_message(self, question: LearningQuestion) -> str:
-        """Format a learning question for display in chat."""
-        try:
-            message = f"📚 **{question.title}** ({question.question_type.value.upper()})\n\n"
-            message += f"{question.question_text}\n\n"
-            
-            # Add toy code if present
-            if question.toy_code:
-                message += f"```python\n{question.toy_code}\n```\n\n"
-            
-            # Add options for multiple choice with clear response format
-            if question.is_multiple_choice() and question.options:
-                message += "**Options:**\n"
-                for i, option in enumerate(question.options):
-                    letter = chr(ord('A') + i)
-                    message += f"{letter}) {option.text}\n"
-                message += "\n**💬 How to respond:** Type just the letter (A, B, C, or D)\n"
-                
-                # Debug: Log successful MCQ formatting
+        """
+        FIXED: Format a learning question for display in chat.
+        Enhanced error handling and cloud deployment compatibility.
+        """
+        # VALIDATION: Ensure question object is properly formed
+        if not question:
+            print("ERROR: _format_question_message received None question")
+            return "**Error:** Question object is None. Please try submitting your code again."
+        
+        # VALIDATION: Check required attributes
+        required_attrs = ['question_type', 'title', 'question_text']
+        for attr in required_attrs:
+            if not hasattr(question, attr):
+                print(f"ERROR: Question missing required attribute: {attr}")
+                return f"**Error:** Question object missing {attr}. Please try submitting your code again."
+        
+        # SAFE DEBUG LOGGING: Avoid import-dependent failures
+        def safe_debug_log(msg: str):
+            """Safe debug logging that won't fail on import issues."""
+            try:
+                # Try relative import first
+                from .session_manager import add_debug_message
+                add_debug_message(msg)
+            except ImportError:
                 try:
-                    from .session_manager import add_debug_message
-                    add_debug_message(f"✅ MCQ formatted with {len(question.options)} options")
-                except:
-                    pass  # Debug logging is optional
+                    # Try absolute import
+                    from core.session_manager import add_debug_message
+                    add_debug_message(msg)
+                except ImportError:
+                    # Fall back to print for debugging
+                    print(f"DEBUG: {msg}")
+            except Exception:
+                # Silent fallback - don't let debug logging break functionality
+                print(f"DEBUG: {msg}")
+        
+        try:
+            # BUILD MESSAGE STEP BY STEP with validation at each step
+            message_parts = []
             
-            elif question.question_type == QuestionType.TRUE_FALSE:
-                message += "**💬 How to respond:** Type 'True' or 'False'\n"
+            # 1. Header with validation
+            if hasattr(question, 'title') and question.title:
+                header = f"📚 **{question.title}**"
+                if hasattr(question, 'question_type') and hasattr(question.question_type, 'value'):
+                    header += f" ({question.question_type.value.upper()})"
+                message_parts.append(header)
             
-            elif question.question_type == QuestionType.TOY_EXAMPLE:
-                message += "**💬 How to respond:** Tell me which option you think is better and briefly why\n"
-            
-            elif question.question_type == QuestionType.SPOT_BUG:
-                message += "**💬 How to respond:** Describe what you think the issue is\n"
-            
-            elif question.question_type == QuestionType.WHAT_IF:
-                message += "**💬 How to respond:** Explain what you think would happen\n"
-            
+            # 2. Question text with validation
+            if hasattr(question, 'question_text') and question.question_text:
+                message_parts.append(question.question_text)
             else:
-                message += "**💬 How to respond:** Share your thoughts\n"
+                safe_debug_log("❌ Question text is missing or empty")
+                return "**Error:** Question text is missing. Please try submitting your code again."
             
-            return message
+            # 3. Toy code if present
+            if hasattr(question, 'toy_code') and question.toy_code:
+                message_parts.append(f"```python\n{question.toy_code}\n```")
+            
+            # 4. MCQ OPTIONS - CRITICAL SECTION with enhanced validation
+            if (hasattr(question, 'question_type') and 
+                hasattr(question.question_type, 'value') and
+                question.question_type.value == 'mcq'):
+                
+                safe_debug_log("🔍 Processing MCQ options...")
+                
+                # Validate options exist
+                if not hasattr(question, 'options'):
+                    safe_debug_log("❌ MCQ question missing options attribute")
+                    message_parts.append("**Error:** Multiple choice options missing.")
+                elif not question.options:
+                    safe_debug_log("❌ MCQ question has empty options list")
+                    message_parts.append("**Error:** Multiple choice options list is empty.")
+                elif len(question.options) == 0:
+                    safe_debug_log("❌ MCQ question has zero options")
+                    message_parts.append("**Error:** No multiple choice options available.")
+                else:
+                    safe_debug_log(f"✅ MCQ has {len(question.options)} options")
+                    
+                    # Build options section
+                    options_section = ["**Options:**"]
+                    
+                    for i, option in enumerate(question.options):
+                        if not option:
+                            safe_debug_log(f"❌ Option {i} is None")
+                            continue
+                        
+                        letter = chr(ord('A') + i)
+                        
+                        # Safely get option text
+                        option_text = ""
+                        if hasattr(option, 'text') and option.text:
+                            option_text = option.text
+                        else:
+                            safe_debug_log(f"❌ Option {i} missing text attribute")
+                            option_text = f"[Option {letter} - text missing]"
+                        
+                        options_section.append(f"{letter}) {option_text}")
+                    
+                    # Add options to message
+                    message_parts.extend(options_section)
+                    message_parts.append("**💬 How to respond:** Type just the letter (A, B, C, or D)")
+                    
+                    safe_debug_log(f"✅ MCQ formatted successfully with {len(question.options)} options")
+            
+            # 5. Response instructions for other question types
+            elif hasattr(question, 'question_type'):
+                if (hasattr(question.question_type, 'value') and 
+                    question.question_type.value == 'tf'):
+                    message_parts.append("**💬 How to respond:** Type 'True' or 'False'")
+                elif (hasattr(question.question_type, 'value') and 
+                      question.question_type.value == 'toy_example'):
+                    message_parts.append("**💬 How to respond:** Tell me which option you think is better and briefly why")
+                elif (hasattr(question.question_type, 'value') and 
+                      question.question_type.value == 'spot_bug'):
+                    message_parts.append("**💬 How to respond:** Describe what you think the issue is")
+                elif (hasattr(question.question_type, 'value') and 
+                      question.question_type.value == 'what_if'):
+                    message_parts.append("**💬 How to respond:** Explain what you think would happen")
+                else:
+                    message_parts.append("**💬 How to respond:** Share your thoughts")
+            
+            # 6. Build final message
+            final_message = "\n\n".join(message_parts)
+            
+            # FINAL VALIDATION: Ensure message is substantial
+            if len(final_message.strip()) < 50:
+                safe_debug_log("❌ Final message too short, potential formatting failure")
+                return f"**Question:** {question.question_text}\n\n**How to respond:** Share your thoughts"
+            
+            safe_debug_log(f"✅ Question formatted successfully: {len(final_message)} characters")
+            return final_message
             
         except Exception as e:
-            # Fallback formatting if there's an error
+            # ROBUST ERROR HANDLING: Log error but provide fallback
+            error_msg = str(e)
+            safe_debug_log(f"❌ Question formatting error: {error_msg}")
+            
+            # Try to provide basic question at minimum
             try:
-                from .session_manager import add_debug_message
-                add_debug_message(f"❌ Question formatting error: {str(e)}")
+                if hasattr(question, 'question_text') and question.question_text:
+                    return f"**Question:** {question.question_text}\n\n**How to respond:** Share your thoughts"
+                else:
+                    return "**Error:** Question formatting failed. Please try submitting your code again."
             except:
-                pass  # Debug logging is optional
-            return f"**Question:** {question.question_text}\n\n**How to respond:** Share your thoughts"
+                return "**Error:** Critical question formatting failure. Please try submitting your code again."
         
     def _evaluate_answer(self, user_answer: str, question: LearningQuestion) -> Tuple[bool, str]:
         """
