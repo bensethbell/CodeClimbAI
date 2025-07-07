@@ -23,33 +23,47 @@ class InterviewCriticalAnalyzer:
         """
         Identify issues that would be critical to fix in a coding interview.
         Returns list of issues in order of interview importance.
+        FIXED: Added debug logging to track issue detection.
         """
         critical_issues = []
+        
+        print(f"DEBUG: Analyzing code_analysis: {code_analysis}")
         
         # TIER 1: Performance killers (absolutely critical in interviews)
         if code_analysis.get('has_iterrows', False):
             critical_issues.append('has_iterrows')
+            print("DEBUG: Found has_iterrows issue")
         if code_analysis.get('has_nested_loops', False):
             critical_issues.append('has_nested_loops')
+            print("DEBUG: Found has_nested_loops issue")
         if code_analysis.get('has_string_concat', False):
             critical_issues.append('has_string_concat')
+            print("DEBUG: Found has_string_concat issue")
         if code_analysis.get('has_inefficient_data_structure', False):
             critical_issues.append('has_inefficient_data_structure')
+            print("DEBUG: Found has_inefficient_data_structure issue")
             
         # TIER 2: Code quality issues (important for senior roles)
         if code_analysis.get('has_manual_loop', False):
             critical_issues.append('has_manual_loop')
+            print("DEBUG: Found has_manual_loop issue")
         if code_analysis.get('has_inefficient_filtering', False):
             critical_issues.append('has_inefficient_filtering')
+            print("DEBUG: Found has_inefficient_filtering issue")
         if code_analysis.get('has_repetitive_code', False):
             critical_issues.append('has_repetitive_code')
+            print("DEBUG: Found has_repetitive_code issue")
             
         # TIER 3: Best practices (nice to have)
         if code_analysis.get('has_unclear_variables', False):
             critical_issues.append('has_unclear_variables')
+            print("DEBUG: Found has_unclear_variables issue")
         if code_analysis.get('has_missing_error_handling', False):
             critical_issues.append('has_missing_error_handling')
-            
+            print("DEBUG: Found has_missing_error_handling issue")
+        
+        print(f"DEBUG: Total critical issues found: {len(critical_issues)} - {critical_issues}")
+        
         return critical_issues
     
     @staticmethod
