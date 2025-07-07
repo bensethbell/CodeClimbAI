@@ -1,8 +1,23 @@
 """
 Example code snippets and templates for the code review assistant.
+FIXED: Random example selection with proper exclusion logic.
 """
 print("👀 examples.py loaded!")
 import random
+import re
+
+def normalize_code(code: str) -> str:
+    """Normalize code for comparison by removing extra whitespace and comments."""
+    if not code:
+        return ""
+    # Remove comments, extra whitespace, and normalize line endings
+    lines = []
+    for line in code.strip().split('\n'):
+        # Remove comments and strip whitespace
+        line = re.sub(r'#.*$', '', line).strip()
+        if line:  # Only keep non-empty lines
+            lines.append(line)
+    return '\n'.join(lines)
 
 def get_example_code() -> str:
     """Get the main pandas optimization example."""
@@ -146,27 +161,72 @@ class ExampleGenerator:
     
     @staticmethod
     def get_random_example(exclude_categories: list = None, exclude_code: str = None) -> tuple[str, str]:
-        """Get a random example with its category, excluding specific code."""
+        """
+        Get a random example with its category, excluding specific code.
+        FIXED: Improved exclusion logic with code normalization and better debugging.
+        """
+        print(f"DEBUG: get_random_example called with exclude_code: {exclude_code[:30] if exclude_code else None}...")
+        
+        # Get all example categories
         examples = {
             "performance": get_performance_examples(),
             "readability": get_readability_examples(),
             "bugs": get_bug_examples(),
             "security": get_security_examples()
         }
+        
+        # Filter out excluded categories
         if exclude_categories:
             examples = {k: v for k, v in examples.items() if k not in exclude_categories}
+            print(f"DEBUG: Filtered out categories: {exclude_categories}")
 
-        all_examples = [(code, category) for category, codes in examples.items() for code in codes.values()]
+        # Build list of all examples with categories
+        all_examples = []
+        for category, codes in examples.items():
+            for code_name, code in codes.items():
+                all_examples.append((code, category, code_name))
+        
+        print(f"DEBUG: Total examples available: {len(all_examples)}")
+        
+        # Filter out excluded code using normalized comparison
         if exclude_code:
-            print("DEBUG: Excluding code:", exclude_code)
-            all_examples = [(code, category) for code, category in all_examples if code != exclude_code]
+            exclude_normalized = normalize_code(exclude_code)
+            print(f"DEBUG: Normalized exclude_code: {exclude_normalized[:50]}...")
+            
+            # Also normalize and exclude the main example
+            main_example_normalized = normalize_code(get_example_code())
+            
+            filtered_examples = []
+            for code, category, name in all_examples:
+                code_normalized = normalize_code(code)
+                
+                # Check if this code matches either excluded code
+                if (code_normalized != exclude_normalized and 
+                    code_normalized != main_example_normalized):
+                    filtered_examples.append((code, category, name))
+                else:
+                    print(f"DEBUG: Excluded {name} from {category} (matched exclude pattern)")
+            
+            all_examples = filtered_examples
+            print(f"DEBUG: Examples after exclusion: {len(all_examples)}")
 
-        if all_examples:
-            selected_example = random.choice(all_examples)
-            print("DEBUG: Selected random example:", selected_example)
-            return selected_example
-        print("DEBUG: No examples left after exclusion. Returning fallback example.")
-        return get_example_code(), "performance"  # Fallback to default example
+        # Ensure we have examples left
+        if not all_examples:
+            print("DEBUG: No examples left after exclusion, creating fallback")
+            # Create a unique fallback that's definitely different
+            fallback_code = '''def calculate_statistics(data):
+    total = sum(data)
+    count = len(data)
+    average = total / count if count > 0 else 0
+    return {'total': total, 'count': count, 'average': average}'''
+            return fallback_code, "performance"
+
+        # Select random example
+        selected = random.choice(all_examples)
+        code, category, name = selected
+        print(f"DEBUG: Selected {name} from {category}: {code[:30]}...")
+        
+        return code, category
         
     @staticmethod
     def get_progressive_examples() -> list:

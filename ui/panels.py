@@ -10,16 +10,79 @@ from core.session_manager import SessionManager
 if ACE_AVAILABLE:
     from streamlit_ace import st_ace
 
-def _load_debug_example(assistant):
-    """Callback to inject a random example into the code editor."""
-    from templates.examples import ExampleGenerator
-
-    code, category = ExampleGenerator.get_random_example(
-        exclude_code=assistant.coach.first_example_code
-    )
-    st.session_state.current_code = code
-    st.session_state.editor_key += 1
-    # st.rerun()
+def _load_debug_example():
+    """
+    FIXED: Callback to inject a random example into the code editor.
+    Now properly excludes the first example and handles session state correctly.
+    """
+    try:
+        print("DEBUG: _load_debug_example called")
+        
+        # Get the first example code for exclusion
+        from templates.examples import get_example_code, ExampleGenerator
+        first_example = get_example_code()
+        
+        # Also try to get it from adaptive coach if available
+        exclude_code = first_example
+        if (hasattr(st.session_state, 'session') and 
+            st.session_state.session and
+            hasattr(st.session_state.session, 'coaching_state') and
+            st.session_state.session.coaching_state):
+            
+            # Try to get from session if available
+            coaching_state = st.session_state.session.coaching_state
+            if hasattr(coaching_state, 'first_example_code') and coaching_state.first_example_code:
+                exclude_code = coaching_state.first_example_code
+                print(f"DEBUG: Using first_example_code from coaching_state: {exclude_code[:30]}...")
+        
+        print(f"DEBUG: Excluding code: {exclude_code[:30]}...")
+        
+        # Get random example with proper exclusion
+        code, category = ExampleGenerator.get_random_example(exclude_code=exclude_code)
+        print(f"DEBUG: Got random example from {category}: {code[:30]}...")
+        
+        # Ensure session state is properly initialized
+        if "current_code" not in st.session_state:
+            st.session_state["current_code"] = ""
+        if "editor_key" not in st.session_state:
+            st.session_state["editor_key"] = 0
+            
+        # Update session state
+        st.session_state.current_code = code
+        st.session_state.editor_key += 1
+        
+        print(f"DEBUG: Updated session state - editor_key: {st.session_state.editor_key}")
+        print(f"DEBUG: Current code set to: {st.session_state.current_code[:50]}...")
+        
+        # Add success message to chat if session exists
+        if hasattr(st.session_state, 'session') and st.session_state.session:
+            from core.session_manager import add_message_to_session
+            add_message_to_session(
+                st.session_state.session, 
+                MessageRole.ASSISTANT, 
+                f"🎲 **Random example loaded!** New {category} example is now in the editor. Click '📤 Submit Code' to analyze it!"
+            )
+        
+        print("DEBUG: _load_debug_example completed successfully")
+        
+    except Exception as e:
+        print(f"ERROR in _load_debug_example: {str(e)}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
+        
+        # Fallback: at least try to load something
+        try:
+            fallback_code = '''def simple_calculation(numbers):
+    result = 0
+    for num in numbers:
+        result += num * 2
+    return result'''
+            
+            st.session_state.current_code = fallback_code
+            st.session_state.editor_key += 1
+            print("DEBUG: Loaded fallback code")
+        except:
+            print("ERROR: Even fallback failed")
 
 class PanelRenderer:
     """Handles rendering of main UI panels."""
@@ -31,23 +94,18 @@ class PanelRenderer:
         if "current_code" not in st.session_state:
             st.session_state["current_code"] = ""
 
-        # # ──── Inject debug snippet if requested ────
-        # if st.session_state.get("debug_inject_code"):
-        #     st.session_state.current_code = st.session_state.debug_inject_code
-        #     st.session_state.editor_key += 1
-        #     del st.session_state["debug_inject_code"]
-        #     st.experimental_rerun()
-# ─────────── INLINE DEBUG BUTTON ───────────
-        if st.button("🐞 Load Random Example Inline", key="load_rand_inline"):
-            from templates.examples import ExampleGenerator
-            code, _ = ExampleGenerator.get_random_example(
-                exclude_code=assistant.coach.first_example_code
-            )
-            st.session_state.current_code = code
-            st.session_state.editor_key += 1
-            st.rerun()
-
         st.markdown("### 📝 Your Code")
+        
+        # ENHANCED: Random example button with better UX
+        col1, col2 = st.columns([3, 1])
+        
+        with col2:
+            if st.button("🎲 Random Example", 
+                        key="load_random_example", 
+                        help="Load a different example for practice",
+                        use_container_width=True):
+                _load_debug_example()
+                st.rerun()
 
         # IDE-like code input area with dynamic key
         dynamic_key = f"code_editor_{st.session_state['editor_key']}"
@@ -122,12 +180,6 @@ class PanelRenderer:
         # Action buttons for active sessions
         if st.session_state.session and st.session_state.session.is_active:
             PanelRenderer.render_session_action_buttons(assistant)
-        st.button(
-        "🐞 Debug Random Example",
-        key="debug_always_visible",
-        on_click=_load_debug_example,
-        args=(assistant,)
-        )
     
     @staticmethod
     def render_user_input_area(assistant):
@@ -216,12 +268,4 @@ class PanelRenderer:
             if st.button("🆕 New Session"):
                 SessionManager.reset_session()
                 st.rerun()
-
-            # ─────────── DEBUG: Force a random example ───────────
-            st.button(
-                "🐞 Debug Random Example",
-                key="debug_random_example",
-                on_click=_load_debug_example,
-                args=(assistant,)
-            )
     # NOTE: render_instructions_panel() method REMOVED - now handled by sidebar
