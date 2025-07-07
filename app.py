@@ -10,131 +10,161 @@ st.set_page_config(
     layout="wide"
 )
 
-def apply_compact_styling():
-    """Apply compact CSS styling to make the UI more appropriately sized."""
+def apply_aggressive_compact_styling():
+    """Apply very aggressive compact CSS styling to match local appearance."""
     st.markdown("""
     <style>
-        /* Main container adjustments */
+        /* AGGRESSIVE container reduction */
         .main .block-container {
-            padding-top: 1rem;
-            padding-bottom: 1rem;
-            padding-left: 1rem;
-            padding-right: 1rem;
-            max-width: 98%;
+            padding-top: 0.5rem !important;
+            padding-bottom: 0.5rem !important;
+            padding-left: 0.5rem !important;
+            padding-right: 0.5rem !important;
+            max-width: 98% !important;
+            margin: 0 auto !important;
         }
         
-        /* Header and title styling */
-        h1 {
-            font-size: 2rem !important;
-            margin-bottom: 0.5rem !important;
-            margin-top: 0.5rem !important;
+        /* AGGRESSIVE title and header reduction */
+        .main h1 {
+            font-size: 1.8rem !important;
+            margin-bottom: 0.2rem !important;
+            margin-top: 0.2rem !important;
+            padding: 0 !important;
         }
         
-        h2 {
-            font-size: 1.3rem !important;
-            margin-bottom: 0.5rem !important;
-            margin-top: 0.5rem !important;
-        }
-        
-        h3, h4 {
+        .main h2, .main h3, .main h4 {
             font-size: 1.1rem !important;
             margin-bottom: 0.3rem !important;
             margin-top: 0.3rem !important;
+            padding: 0 !important;
         }
         
-        /* Subtitle styling */
-        .main h4 {
-            color: gray;
-            font-weight: normal;
-            margin-top: -10px;
+        /* Subtitle compact */
+        .main h4[style*="color: gray"] {
+            margin-top: -0.5rem !important;
+            margin-bottom: 0.5rem !important;
         }
         
-        /* Text area and input styling */
+        /* AGGRESSIVE column spacing */
+        .css-1r6slb0, .css-12oz5g7 {
+            gap: 0.5rem !important;
+        }
+        
+        /* AGGRESSIVE element spacing reduction */
+        .element-container {
+            margin-bottom: 0.2rem !important;
+        }
+        
+        /* Text inputs and areas - more compact */
         .stTextArea textarea {
+            font-size: 12px !important;
+            line-height: 1.2 !important;
+            padding: 0.4rem !important;
+        }
+        
+        .stTextInput input {
+            font-size: 13px !important;
+            height: 2.2rem !important;
+            padding: 0.3rem !important;
+        }
+        
+        /* Buttons - more compact */
+        .stButton > button {
+            height: 2.4rem !important;
+            font-size: 13px !important;
+            padding: 0.3rem 0.8rem !important;
+            margin: 0.2rem 0 !important;
+        }
+        
+        /* Forms - reduce padding */
+        .stForm {
+            border: none !important;
+            padding: 0.3rem !important;
+            margin: 0.2rem 0 !important;
+        }
+        
+        /* Info boxes - much more compact */
+        .stInfo, .stSuccess, .stError, .stWarning {
+            padding: 0.4rem !important;
+            margin: 0.3rem 0 !important;
+        }
+        
+        /* Expanders - more compact */
+        .streamlit-expanderHeader {
+            font-size: 0.95rem !important;
+            font-weight: 600 !important;
+            padding: 0.3rem !important;
+        }
+        
+        .streamlit-expanderContent {
+            padding: 0.4rem !important;
+        }
+        
+        /* Container heights - more compact */
+        .stContainer {
+            padding: 0.3rem !important;
+        }
+        
+        /* Markdown spacing - very tight */
+        .main .markdown-text-container {
+            margin-bottom: 0.2rem !important;
+        }
+        
+        /* Code blocks - more compact */
+        .stCode {
+            font-size: 11px !important;
+            margin: 0.2rem 0 !important;
+        }
+        
+        /* Remove excessive spacing from specific Streamlit elements */
+        div[data-testid="stVerticalBlock"] > div {
+            gap: 0.2rem !important;
+        }
+        
+        div[data-testid="column"] {
+            padding: 0.2rem !important;
+        }
+        
+        /* Chat message styling - more compact */
+        .chat-message {
+            padding: 6px 10px !important;
+            margin-bottom: 6px !important;
+            border-radius: 10px !important;
             font-size: 13px !important;
             line-height: 1.3 !important;
         }
         
-        .stTextInput input {
-            font-size: 14px !important;
-            height: 2.5rem !important;
-        }
-        
-        /* Button styling */
-        .stButton > button {
-            height: 2.8rem !important;
-            font-size: 14px !important;
-            padding: 0.5rem 1rem !important;
-        }
-        
-        /* Column spacing */
-        .css-1r6slb0 {
-            gap: 1rem !important;
-        }
-        
-        /* Chat container adjustments */
-        .stContainer {
-            padding: 0.5rem !important;
-        }
-        
-        /* Form styling */
-        .stForm {
-            border: none !important;
-            padding: 0.5rem !important;
-        }
-        
-        /* Expander styling */
-        .streamlit-expanderHeader {
-            font-size: 1rem !important;
-            font-weight: 600 !important;
-        }
-        
-        /* Info boxes */
-        .stInfo {
-            padding: 0.5rem !important;
-            margin: 0.5rem 0 !important;
-        }
-        
-        .stSuccess {
-            padding: 0.5rem !important;
-            margin: 0.5rem 0 !important;
-        }
-        
-        .stError {
-            padding: 0.5rem !important;
-            margin: 0.5rem 0 !important;
-        }
-        
-        /* Code blocks */
-        .stCode {
-            font-size: 12px !important;
-        }
-        
-        /* Reduce excessive spacing */
-        .element-container {
-            margin-bottom: 0.5rem !important;
-        }
-        
-        /* Chat message styling improvements */
-        .chat-message {
-            padding: 8px 12px !important;
-            margin-bottom: 8px !important;
-            border-radius: 12px !important;
-            font-size: 14px !important;
-            line-height: 1.4 !important;
-        }
-        
         /* Sidebar adjustments if used */
         .css-1d391kg {
-            padding-top: 1rem !important;
+            padding-top: 0.5rem !important;
+        }
+        
+        /* AGGRESSIVE markdown list spacing */
+        .main ul, .main ol {
+            margin: 0.2rem 0 !important;
+            padding-left: 1rem !important;
+        }
+        
+        .main li {
+            margin: 0.1rem 0 !important;
+        }
+        
+        /* Target specific streamlit spacing classes */
+        .css-1544g2n, .css-1d391kg, .css-18e3th9 {
+            padding: 0.2rem !important;
+        }
+        
+        /* Final override for any remaining spacing */
+        .main > div {
+            gap: 0.3rem !important;
         }
     </style>
     """, unsafe_allow_html=True)
 
 def main():
     """Main application function."""
-    # Apply compact styling first
-    apply_compact_styling()
+    # Apply aggressive compact styling first
+    apply_aggressive_compact_styling()
     
     # Initialize session state
     SessionManager.initialize_session_state()
@@ -154,8 +184,8 @@ def main():
         unsafe_allow_html=True
     )
     
-    # Create three columns with better proportions for compact view
-    col1, col2, col3 = st.columns([1, 1, 0.55])
+    # Create three columns with tighter proportions
+    col1, col2, col3 = st.columns([1, 1, 0.5])
     
     # Left column - Code Input
     with col1:
