@@ -80,7 +80,7 @@ def create_welcome_popup():
         ">
             <h3 style="margin: 0 0 12px 0; color: #fff;">🎯 Ready to start?</h3>
             <p style="margin: 0 0 8px 0; font-size: 1rem;">
-                <strong>Option 1:</strong> Click <strong>"📚 Get Example"</strong> button in the left panel to load sample code
+                <strong>Option 1:</strong> Click <strong>"Generate Example"</strong> button in the left panel to load sample code
             </p>
             <p style="margin: 0; font-size: 1rem;">
                 <strong>Option 2:</strong> Paste your own Python code in the left editor and click "📤 Submit Code"
@@ -93,6 +93,27 @@ def create_welcome_popup():
     </div>
     """
     return welcome_content
+
+def create_simple_welcome_popup():
+    """Create a Streamlit-compatible welcome popup using native components."""
+    # Use Streamlit's native success container for better compatibility
+    st.success("🚀 **Welcome to CodeClimbAI!**")
+    
+    st.markdown("""
+    ### Learn by discovery, not by memorization.
+    
+    **🧠 Our Philosophy:**
+    - **Questions over answers** - We guide you to insights through Socratic questioning
+    - **Practice with real code** - No theoretical examples, work with actual optimization problems  
+    - **Adaptive learning** - Questions adjust to your skill level and progress
+    - **Safe exploration** - Experiment freely with code execution in a protected environment
+    
+    **🎯 Ready to start?**
+    - **Option 1:** Click the **"Generate Example"** button in the left panel to load sample code
+    - **Option 2:** Paste your own Python code in the left editor and click "📤 Submit Code"
+    
+    💡 *Remember: There are no wrong answers, only learning opportunities!*
+    """)
 
 def create_compact_welcome_banner():
     """Create a more compact welcome banner for returning users."""
@@ -108,20 +129,26 @@ def create_compact_welcome_banner():
     ">
         <h3 style="margin: 0; font-size: 1.2rem;">🚀 CodeClimbAI - Learn by Discovery</h3>
         <p style="margin: 4px 0 0 0; font-size: 0.9rem; opacity: 0.9;">
-            Click <strong>"Get Example"</strong> for sample code or paste your own code to begin learning!
+            Click <strong>"Generate Example"</strong> for sample code or paste your own code to begin learning!
         </p>
     </div>
     """
     return banner_html
 
+def create_compact_welcome_banner_streamlit():
+    """Create a more compact welcome banner for returning users using Streamlit native."""
+    st.info("🚀 **CodeClimbAI** - Click 'Generate Example' for sample code or paste your own code to begin learning!")
+
 def render_welcome_popup():
     """Render the welcome popup if appropriate."""
     if should_show_welcome_popup():
-        # Create a prominent container for the welcome popup
+        # Create a prominent container for the welcome popup using BOTH methods
+        # Option 1: HTML version (original)
         welcome_html = create_welcome_popup()
-        
-        # Render the popup
         st.markdown(welcome_html, unsafe_allow_html=True)
+        
+        # Option 2: Streamlit native version (enhanced)
+        create_simple_welcome_popup()
         
         # Create dismissal mechanism
         col1, col2, col3 = st.columns([1, 1, 1])
@@ -151,8 +178,13 @@ def render_appropriate_welcome():
            not st.session_state.session or
            len(st.session_state.session.conversation_history) < 3)):
         
+        # Option 1: HTML banner (original)
         compact_banner = create_compact_welcome_banner()
         st.markdown(compact_banner, unsafe_allow_html=True)
+        
+        # Option 2: Streamlit native banner (enhanced)
+        create_compact_welcome_banner_streamlit()
+        
         return True
     
     return False
@@ -335,7 +367,7 @@ def render_sidebar_instructions():
         # Quick Start section
         st.markdown("## 🚀 Quick Start")
         st.markdown("""
-        1. **Click "📚 Get Example"** in the left panel to load sample code
+        1. **Click "Generate Example"** in the left panel to load sample code
         2. **Click "📤 Submit Code"** to begin learning
         3. **Answer the questions** Claude asks about your code
         4. **Make improvements** and resubmit to continue learning
@@ -367,7 +399,7 @@ def render_sidebar_instructions():
         st.markdown("## 💡 Tips & Commands")
         st.markdown("""
         **UI Actions:**
-        - Click "Get Example" - Load sample code
+        - Click "Generate Example" - Load sample code
         - Type 'test' - Test your current code
         - Type 'hint' - Get a helpful hint
         

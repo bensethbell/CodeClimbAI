@@ -1,5 +1,3 @@
-# ===== FIXED PANELS.PY =====
-
 import streamlit as st
 from datetime import datetime
 from config import ACE_AVAILABLE, CODE_EDITOR_HEIGHT, CODE_EDITOR_THEME, CODE_EDITOR_FONT_SIZE, CODE_EDITOR_TAB_SIZE, CHAT_CONTAINER_HEIGHT
@@ -12,53 +10,69 @@ from core.session_manager import SessionManager
 if ACE_AVAILABLE:
     from streamlit_ace import st_ace
 
-def _load_example_with_first_time_logic():
+def _load_debug_example():
     """
-    FIXED: Callback to load examples with proper first-time logic.
-    First time = built-in example, subsequent times = random examples.
+    PRESERVED ORIGINAL FUNCTION: Callback to inject a random example into the code editor.
+    Enhanced with first-time logic while maintaining all original functionality.
     """
     try:
-        print("DEBUG: _load_example_with_first_time_logic called")
+        print("DEBUG: _load_debug_example called")
         
-        # Check if this is the first time loading an example
+        # ENHANCED: Add first-time logic while preserving original behavior
         if 'first_example_loaded' not in st.session_state:
             st.session_state.first_example_loaded = False
         
         if not st.session_state.first_example_loaded:
-            # FIRST TIME: Load the built-in example
+            # First time: Load the built-in example
             from templates.examples import get_example_code
             code = get_example_code()
-            category = "performance"
+            category = "performance" 
             st.session_state.first_example_loaded = True
             print(f"DEBUG: Loading FIRST example (built-in): {code[:30]}...")
         else:
-            # SUBSEQUENT TIMES: Load random examples
-            from templates.examples import ExampleGenerator, get_example_code
+            # PRESERVED ORIGINAL LOGIC: Get the first example code for exclusion
+            from templates.examples import get_example_code, ExampleGenerator
             first_example = get_example_code()
             
-            # Get random example excluding the first one
-            code, category = ExampleGenerator.get_random_example(exclude_code=first_example)
-            print(f"DEBUG: Loading RANDOM example from {category}: {code[:30]}...")
+            # Also try to get it from adaptive coach if available
+            exclude_code = first_example
+            if (hasattr(st.session_state, 'session') and 
+                st.session_state.session and
+                hasattr(st.session_state.session, 'coaching_state') and
+                st.session_state.session.coaching_state):
+                
+                # Try to get from session if available
+                coaching_state = st.session_state.session.coaching_state
+                if hasattr(coaching_state, 'first_example_code') and coaching_state.first_example_code:
+                    exclude_code = coaching_state.first_example_code
+                    print(f"DEBUG: Using first_example_code from coaching_state: {exclude_code[:30]}...")
+            
+            print(f"DEBUG: Excluding code: {exclude_code[:30]}...")
+            
+            # Get random example with proper exclusion
+            code, category = ExampleGenerator.get_random_example(exclude_code=exclude_code)
+            print(f"DEBUG: Got random example from {category}: {code[:30]}...")
         
-        # Ensure session state is properly initialized
+        # PRESERVED ORIGINAL: Ensure session state is properly initialized
         if "current_code" not in st.session_state:
             st.session_state["current_code"] = ""
         if "editor_key" not in st.session_state:
             st.session_state["editor_key"] = 0
             
-        # Update session state
+        # PRESERVED ORIGINAL: Update session state
         st.session_state.current_code = code
         st.session_state.editor_key += 1
         
         print(f"DEBUG: Updated session state - editor_key: {st.session_state.editor_key}")
         print(f"DEBUG: Current code set to: {st.session_state.current_code[:50]}...")
         
-        # Add success message to chat if session exists
+        # PRESERVED ORIGINAL: Add success message to chat if session exists
         if hasattr(st.session_state, 'session') and st.session_state.session:
             from core.session_manager import add_message_to_session
             
+            # ENHANCED: Better message based on first-time vs random
             if not st.session_state.first_example_loaded:
-                message = f"✅ **First example loaded!** Main pandas optimization example is now in the editor. Click '📤 Submit Code' to begin learning!"
+                message = f"✅ **Example loaded!** Main pandas optimization example is now in the editor. Click '📤 Submit Code' to begin learning!"
             else:
                 message = f"🎲 **Random example loaded!** New {category} example is now in the editor. Click '📤 Submit Code' to analyze it!"
             
@@ -68,14 +82,14 @@ def _load_example_with_first_time_logic():
                 message
             )
         
-        print("DEBUG: _load_example_with_first_time_logic completed successfully")
+        print("DEBUG: _load_debug_example completed successfully")
         
     except Exception as e:
-        print(f"ERROR in _load_example_with_first_time_logic: {str(e)}")
+        print(f"ERROR in _load_debug_example: {str(e)}")
         import traceback
         print(f"Traceback: {traceback.format_exc()}")
         
-        # Fallback: at least try to load something
+        # PRESERVED ORIGINAL: Fallback code
         try:
             fallback_code = '''def simple_calculation(numbers):
     result = 0
@@ -91,10 +105,9 @@ def _load_example_with_first_time_logic():
 
 class PanelRenderer:
     """Handles rendering of main UI panels."""
-    
     @staticmethod
     def render_code_input_panel():
-        # ───── Initialize editor state ─────
+        # PRESERVED ORIGINAL: Initialize editor state
         if "editor_key" not in st.session_state:
             st.session_state["editor_key"] = 0
         if "current_code" not in st.session_state:
@@ -102,25 +115,30 @@ class PanelRenderer:
 
         st.markdown("### 📝 Your Code")
         
-        # FIXED: Single example button with proper logic
+        # ENHANCED: Smart button text while preserving original layout
         col1, col2 = st.columns([3, 1])
         
         with col2:
-            # Check if first example has been loaded
+            # ENHANCED: Smart button text based on state
             if 'first_example_loaded' not in st.session_state:
                 st.session_state.first_example_loaded = False
             
-            button_text = "📚 Get Example" if not st.session_state.first_example_loaded else "🎲 Random Example"
-            button_help = "Load the main pandas example" if not st.session_state.first_example_loaded else "Load a different example for practice"
+            # ENHANCED: Dynamic button text and help
+            if not st.session_state.first_example_loaded:
+                button_text = "📚 Get Example"
+                button_help = "Load the main pandas optimization example"
+            else:
+                button_text = "🎲 Random Example" 
+                button_help = "Load a different example for practice"
             
             if st.button(button_text, 
-                        key="load_example_button", 
+                        key="load_random_example", 
                         help=button_help,
                         use_container_width=True):
-                _load_example_with_first_time_logic()
+                _load_debug_example()
                 st.rerun()
 
-        # IDE-like code input area with dynamic key
+        # PRESERVED ORIGINAL: IDE-like code input area with dynamic key
         dynamic_key = f"code_editor_{st.session_state['editor_key']}"
         if ACE_AVAILABLE:
             code_input = st_ace(
@@ -143,29 +161,30 @@ class PanelRenderer:
                 value=st.session_state["current_code"],
                 key=dynamic_key,
                 height=CODE_EDITOR_HEIGHT,
-                placeholder="Click the 'Get Example' button above to load sample code, or paste your own code here..."
+                placeholder="Click the button above to load sample code, or paste your own code here..."
             )
 
-        # Persist editor contents back into session state
+        # PRESERVED ORIGINAL: Persist editor contents back into session state
         if code_input != st.session_state["current_code"]:
             st.session_state["current_code"] = code_input
 
-        # Submit button
+        # PRESERVED ORIGINAL: Submit button
         if st.button("📤 Submit Code", type="primary", use_container_width=True):
             SessionManager.handle_code_submission(code_input)
 
         PanelRenderer.render_getting_started_section()
+
     
     @staticmethod
     def render_getting_started_section():
-        """Render the getting started instructions."""
+        """ENHANCED: Render the getting started instructions."""
         st.info(
-            "Click 'Get Example' for sample code, or paste your own code and click 'Submit Code' to start learning!"
+            "Click the button above for sample code, or paste your own code and click 'Submit Code' to start learning!"
         )
     
     @staticmethod
     def render_chat_panel(assistant):
-        """Render the middle panel for chat interface."""
+        """PRESERVED ORIGINAL: Render the middle panel for chat interface."""
         st.markdown("### 🤖 Claude Assistant")
         
         # Show current goal if session is active
@@ -195,7 +214,7 @@ class PanelRenderer:
     
     @staticmethod
     def render_user_input_area(assistant):
-        """Render user input area and handle message submission."""
+        """PRESERVED ORIGINAL: Render user input area and handle message submission."""
         st.markdown("#### 💭 Your Response")
         
         # Simple form without complex keys
@@ -215,7 +234,7 @@ class PanelRenderer:
             
     @staticmethod
     def render_session_action_buttons(assistant):
-        """Render action buttons for active sessions."""
+        """PRESERVED ORIGINAL: Render action buttons for active sessions."""
         col2_1, col2_2 = st.columns(2)
         
         with col2_1:
@@ -280,139 +299,3 @@ class PanelRenderer:
             if st.button("🆕 New Session"):
                 SessionManager.reset_session()
                 st.rerun()
-
-# ===== FIXED HANDLERS.PY =====
-
-def get_example_code():
-    """Get the main pandas optimization example with proper imports."""
-    return '''import pandas as pd
-
-def add_metrics(df):
-    results = []
-    for idx, row in df.iterrows():
-        results.append(row["price"] * 0.2 + row["tax"])
-    df["total"] = results
-    return df'''
-
-class InputHandler:
-    """Handles user input processing and special commands."""
-    
-    @staticmethod
-    def handle_user_message(clean_input, assistant):
-        """Handle user message processing."""
-        try:
-            from core.session_manager import add_debug_message
-            add_debug_message(f"Processing input: {clean_input}")
-            
-            # Handle special commands - REMOVED 'example' command since we have button now
-            if clean_input.lower() == "test" and st.session_state.session:
-                InputHandler.handle_test_command()
-            else:
-                InputHandler.handle_regular_chat(clean_input, assistant)
-            
-        except Exception as e:
-            st.error(f"Error processing message: {str(e)}")
-            from core.session_manager import add_debug_message
-            add_debug_message(f"❌ Error in handle_user_message: {str(e)}")
-    
-    @staticmethod
-    def handle_test_command():
-        """Handle the 'test' command."""
-        try:
-            from utils.execution import CodeExecutor
-            from core.session_manager import add_message_to_session
-            
-            if st.session_state.session.current_code.strip():
-                execution_result = CodeExecutor.execute_code_safely(st.session_state.session.current_code)
-                    
-                if execution_result['success']:
-                    output_block = f"**Output:**\n```\n{execution_result['output']}\n```" if execution_result['output'] else ""
-                    response = f"""✅ **Code executed successfully!**
-
-                {execution_result['fake_data_info'] if execution_result['fake_data_info'] else ''}
-
-                {output_block}
-
-                Great! Your code runs without errors. Now let's focus on optimization."""
-                else:
-                    response = f"""❌ **Code execution failed:**
-
-**Error:** {execution_result['error']}
-
-**Traceback:**
-```
-{execution_result['traceback']}
-```
-
-{execution_result['fake_data_info'] if execution_result['fake_data_info'] else ''}
-
-Let's fix this error first. Can you identify what's causing the issue?"""
-                
-                add_message_to_session(st.session_state.session, MessageRole.USER, "test")
-                add_message_to_session(st.session_state.session, MessageRole.ASSISTANT, response)
-            else:
-                add_message_to_session(st.session_state.session, MessageRole.USER, "test")
-                add_message_to_session(st.session_state.session, MessageRole.ASSISTANT, "No code to test! Please add some code first.")
-        
-        except Exception as e:
-            st.error(f"Error in test command: {str(e)}")
-            from core.session_manager import add_debug_message
-            add_debug_message(f"❌ Error in handle_test_command: {str(e)}")
-    
-    @staticmethod
-    def handle_regular_chat(clean_input, assistant):
-        """Handle regular chat messages with adaptive coaching."""
-        try:
-            from core.session_manager import add_message_to_session
-            
-            if not st.session_state.session:
-                from core.models import ReviewSession
-                st.session_state.session = ReviewSession("", "", "", [])
-            
-            # Check if we're waiting for an answer to a coaching question
-            if (hasattr(st.session_state.session, 'coaching_state') and 
-                st.session_state.session.coaching_state and
-                st.session_state.session.coaching_state.is_waiting_for_answer()):
-                
-                # Process the answer with adaptive coach
-                from core.adaptive_coach import AdaptiveCoach
-                from core.analyzer import CodeAnalyzer
-                
-                code_analyzer = CodeAnalyzer()
-                adaptive_coach = AdaptiveCoach(code_analyzer)
-                
-                feedback = adaptive_coach.handle_user_answer(clean_input, st.session_state.session.coaching_state)
-                add_message_to_session(st.session_state.session, MessageRole.USER, clean_input)
-                add_message_to_session(st.session_state.session, MessageRole.ASSISTANT, feedback)
-                return
-            
-            add_message_to_session(st.session_state.session, MessageRole.USER, clean_input)
-            
-            # Generate response
-            if st.session_state.session.is_active and st.session_state.session.goal:
-                if "hint" in clean_input.lower():
-                    st.session_state.session.hint_level += 1
-                    if st.session_state.session.hint_level <= 3:
-                        response = assistant.provide_hint(
-                            st.session_state.session.current_code,
-                            st.session_state.session.goal,
-                            st.session_state.session.hint_level
-                        )
-                    else:
-                        response = assistant.show_solution(st.session_state.session)
-                else:
-                    response = assistant.evaluate_response(st.session_state.session, clean_input)
-            else:
-                # General chat
-                response = f"I'm here to help! {clean_input if len(clean_input) < 50 else 'Thanks for your message.'} To get started with code review, click the 'Get Example' button to load sample code or paste your own code in the left panel."
-                
-                # Add helpful commands
-                if st.session_state.session and st.session_state.session.current_code.strip():
-                    response += "\n\n💡 **Tip:** Type 'test' to run your current code and check for errors."
-            
-            add_message_to_session(st.session_state.session, MessageRole.ASSISTANT, response)
-            
-        except Exception as e:
-            st.error(f"Error in regular chat: {str(e)}")
-            from core.session_manager import add_debug_message
-            add_debug_message(f"❌ Error in handle_regular_chat: {str(e)}")
