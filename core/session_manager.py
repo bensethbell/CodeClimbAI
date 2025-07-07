@@ -43,9 +43,9 @@ class SessionManager:
     
     @staticmethod
     def initialize_session_state():
-        """Initialize all session state variables."""
+        """Initialize all session state variables - CRITICAL: current_code MUST be initialized."""
         defaults = {
-            'current_code': "",
+            'current_code': "",  # CRITICAL: Initialize this first before any UI renders
             'session': None,
             'learning_log': [],
             'last_input_key': 0,
@@ -57,6 +57,12 @@ class SessionManager:
         for key, default_value in defaults.items():
             if key not in st.session_state:
                 st.session_state[key] = default_value
+        
+        # CRITICAL: Ensure current_code is always a string
+        if not isinstance(st.session_state.current_code, str):
+            st.session_state.current_code = ""
+            
+        add_debug_message("Session state initialized with current_code")
     
     @staticmethod
     def start_new_session(code: str, assistant: CodeReviewAssistant) -> ReviewSession:
