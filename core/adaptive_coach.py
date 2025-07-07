@@ -1,6 +1,6 @@
 """
 Adaptive coaching system for the Learn-As-You-Go Code Review Assistant.
-Reduced size version with question formatting extracted to separate module.
+SHORTENED: Uses helper functions to reduce file size and eliminate circular imports.
 """
 
 import uuid
@@ -11,6 +11,7 @@ from .coaching_models import (
 )
 from .question_templates import QuestionSelector, QuestionTemplates
 from .question_formatter import QuestionFormatter
+from .coaching_helpers import AnswerEvaluator, CodeAnalysisHelper, ResponseGenerator, NudgeGenerator
 from .analyzer import CodeAnalyzer
 from templates.examples import ExampleGenerator, get_example_code
 
@@ -70,7 +71,7 @@ class AdaptiveCoach:
     
     def process_code_submission(self, code: str, coaching_state: CoachingState) -> Tuple[str, CoachingMode]:
         print("Processing code submission...")
-        code_analysis = self._analyze_code_for_coaching(code)
+        code_analysis = CodeAnalysisHelper.analyze_code_for_coaching(code)
 
         # Set main issue if not already set
         if not coaching_state.main_issue:
@@ -83,6 +84,7 @@ class AdaptiveCoach:
             else:
                 coaching_state.main_issue = self.detect_main_issue_with_claude(code)
         print("DEBUG: main_issue =", coaching_state.main_issue)
+        
         # Map issue keys to analysis flags
         issue_flags = {
             'has_iterrows': code_analysis.get('has_iterrows', False),
@@ -92,6 +94,7 @@ class AdaptiveCoach:
         }
         print("DEBUG: code_analysis =", code_analysis)
         print("DEBUG: issue_flags =", issue_flags)
+        
         # Only show congratulations if the main issue was previously present and is now resolved
         main_issue = coaching_state.main_issue
         if main_issue and main_issue in issue_flags and not issue_flags[main_issue]:
@@ -117,7 +120,6 @@ class AdaptiveCoach:
         else:
             return self._create_nudge(code, code_analysis, coaching_state)
 
-    
     def handle_user_answer(self, user_answer: str, coaching_state: CoachingState) -> str:
         """
         Process user's answer with intelligent decision-making between hints and questions.
@@ -143,10 +145,11 @@ class AdaptiveCoach:
             example_code, category = self.load_example_code()
             print("DEBUG: Example loaded:", example_code, category)
             return f"Example loaded! Here's a {category} example:\n\n```python\n{example_code}\n```"
+        
         # If waiting for answer to a specific question
         if coaching_state.is_waiting_for_answer():
             current_question = coaching_state.current_interaction.question
-            is_correct, base_feedback = self._evaluate_answer(user_answer, current_question)
+            is_correct, base_feedback = AnswerEvaluator.evaluate_answer(user_answer, current_question)
             
             # Complete the interaction
             status = AnswerStatus.CORRECT if is_correct else AnswerStatus.INCORRECT
@@ -154,79 +157,12 @@ class AdaptiveCoach:
             
             # Create clean, intelligent response (no concatenation)
             if is_correct:
-                return self._create_clean_correct_response(base_feedback, coaching_state)
+                return ResponseGenerator.create_clean_correct_response(base_feedback, coaching_state)
             else:
-                return self._create_clean_incorrect_response(base_feedback, coaching_state)
+                return ResponseGenerator.create_clean_incorrect_response(base_feedback, coaching_state)
         
         # General conversation - not waiting for specific answer
         return self._handle_general_conversation(user_answer, coaching_state)
-    
-    def _create_clean_correct_response(self, base_feedback: str, coaching_state: CoachingState) -> str:
-        """Create clean, intelligent response for correct answers without duplication."""
-        # Extract core feedback without generic next steps
-        lines = base_feedback.split('\n')
-        clean_parts = []
-        
-        for line in lines:
-            # Keep the main feedback but skip redundant next steps
-            if any(skip_phrase in line for skip_phrase in [
-                'Next step:', 'Submit your improved', 'ask for a hint', 
-                'when ready', 'if you need guidance'
-            ]):
-                break
-            clean_parts.append(line)
-        
-        # Build clean response with intelligent next step
-        result = '\n'.join(clean_parts).strip()
-        
-        # Add single, intelligent next step based on user performance
-        success_rate = coaching_state.get_success_rate()
-        
-        if success_rate > 0.8 and coaching_state.total_questions_asked >= 2:
-            # High performer - advanced challenge
-            result += "\n\n🎯 **Advanced Challenge:** Now that you understand this concept, what do you think happens to performance when you have nested loops processing large datasets? Can you predict the time complexity?"
-            result += "\n\n💡 **Learning Options:** Want a hint to guide your thinking, or prefer another hands-on question to test your understanding?"
-        elif success_rate > 0.6:
-            # Good performer - practical application
-            result += "\n\n🔧 **Apply It:** Try modifying your code to use vectorized operations. Replace the loop with direct column operations and submit your improved version!"
-            result += "\n\n💡 **Learning Options:** Need a hint on vectorized syntax, or want to explore this concept with another question first?"
-        else:
-            # Building confidence - supportive guidance
-            result += "\n\n✨ **Great progress!** Now try changing just the calculation part to work with entire columns instead of individual rows. You've got this!"
-            result += "\n\n💡 **Learning Options:** Ask for a hint if you need guidance, or request another question to practice this concept more!"
-        
-        return result
-    
-    def _create_clean_incorrect_response(self, base_feedback: str, coaching_state: CoachingState) -> str:
-        """Create clean, supportive response for incorrect answers."""
-        # Extract core feedback without generic encouragement
-        lines = base_feedback.split('\n')
-        clean_parts = []
-        
-        for line in lines:
-            # Keep explanation but skip generic encouragement
-            if any(skip_phrase in line for skip_phrase in [
-                'Keep learning:', 'try another question', 'ask for a hint about'
-            ]):
-                break
-            clean_parts.append(line)
-        
-        result = '\n'.join(clean_parts).strip()
-        
-        # Add intelligent guidance based on struggle pattern
-        recent_interactions = coaching_state.interaction_history[-3:] if coaching_state.interaction_history else []
-        incorrect_count = sum(1 for i in recent_interactions if i.answer_status == AnswerStatus.INCORRECT)
-        
-        if incorrect_count >= 2:
-            # Multiple wrong answers - concrete help
-            result += "\n\n💡 **Concrete Hint:** Replace `for idx, row in df.iterrows():` with direct operations like `df['new_column'] = df['price'] * 0.2 + df['tax']`. This works on entire columns at once!"
-            result += "\n\n🎓 **Learning Options:** Want to try applying this directly, or explore more with another question to solidify your understanding?"
-        else:
-            # Single wrong answer - conceptual encouragement
-            result += "\n\n🤔 **Think about this:** Pandas is designed to work with entire columns of data. Instead of processing one row at a time, what if you could do the math on all rows simultaneously?"
-            result += "\n\n💡 **Learning Options:** Ask for a more specific hint, or try another question to explore this concept further!"
-        
-        return result
     
     def _provide_contextual_hint(self, coaching_state: CoachingState) -> str:
         """Provide hint based on current context and user progress."""
@@ -259,27 +195,6 @@ class AdaptiveCoach:
         """Handle general conversation when not waiting for specific answer."""
         return "I'm here to help with your code! Please submit some code to get started, or ask a specific question about optimization."
     
-    # PRESERVED ORIGINAL METHODS - All existing functionality maintained
-    
-    def _analyze_code_for_coaching(self, code: str) -> Dict[str, Any]:
-        """Analyze code to identify coaching opportunities."""
-        analysis = {
-            'has_iterrows': 'iterrows' in code.lower(),
-            'has_string_concat': '+=' in code and any(s in code.lower() for s in ['str', '"', "'"]),
-            'has_nested_loops': code.count('for ') > 1,
-            'line_count': len(code.split('\n')),
-            'complexity_score': self._calculate_complexity_score(code)
-        }
-        return analysis
-    
-    def _calculate_complexity_score(self, code: str) -> int:
-        """Calculate a simple complexity score for the code."""
-        score = 0
-        score += code.count('for ') * 2  # Loops add complexity
-        score += code.count('if ') * 1   # Conditionals add complexity
-        score += code.count('def ') * 1  # Functions add complexity
-        return score
-    
     def _create_learning_question(self, code: str, coaching_state: CoachingState, 
                                 analysis: Dict[str, Any]) -> Tuple[str, CoachingMode]:
         """Create an appropriate learning question."""
@@ -301,111 +216,5 @@ class AdaptiveCoach:
         return interaction.content, CoachingMode.QUESTION
     
     def _create_nudge(self, code: str, analysis: Dict[str, Any], coaching_state: CoachingState) -> Tuple[str, CoachingMode]:
-        """Create a direct nudge to help the user improve their code, or congratulate if the main issue is solved."""
-        main_issue = coaching_state.main_issue
-
-        # Map issue keys to analysis flags
-        issue_flags = {
-            'has_iterrows': analysis.get('has_iterrows', False),
-            'has_string_concat': analysis.get('has_string_concat', False),
-            'has_nested_loops': analysis.get('has_nested_loops', False),
-            # Add more as needed
-        }
-
-        if analysis['has_iterrows']:
-            nudge = """🎯 **Optimization Opportunity**: I notice you're using `df.iterrows()` which is quite slow for large datasets. 
-
-    **Hint**: Pandas shines with vectorized operations that work on entire columns at once. Try replacing your loop with direct column operations like `df['column1'] * df['column2']`.
-
-    Would you like to try optimizing this part of your code?
-
-    💡 **Learning Options:** Want a more specific hint, or prefer to explore this with a hands-on question first?"""
-        
-        elif analysis['has_string_concat']:
-            nudge = """🎯 **Performance Tip**: Building strings with `+=` in a loop can be slow for large amounts of text.
-
-    **Hint**: Consider collecting your strings in a list and using `''.join(list)` at the end for better performance.
-
-    Want to give it a try?
-
-    💡 **Learning Options:** Need a hint on the exact syntax, or want to explore this concept with another question?"""
-        
-        elif analysis['complexity_score'] > 6:
-            nudge = """🎯 **Readability Opportunity**: Your code is getting a bit complex. 
-
-    **Hint**: Consider breaking it into smaller functions with descriptive names. This makes it easier to test and understand.
-
-    What do you think about refactoring this?
-
-    💡 **Learning Options:** Ask for guidance on refactoring approaches, or try a question about code organization principles?"""
-        
-        else:
-            nudge = """🎯 **Good work!** Your code looks functional. Let's explore some potential optimizations or improvements together.
-
-    What aspect would you like to focus on: performance, readability, or error handling?
-
-    💡 **Learning Options:** Want me to ask you a targeted question about optimization, or prefer to dive straight into improving the code?"""
-        
-        return nudge, CoachingMode.NUDGE
-    
-    def _evaluate_answer(self, user_answer: str, question: LearningQuestion) -> Tuple[bool, str]:
-        """
-        Evaluate user's answer to a question.
-        
-        Returns:
-            Tuple of (is_correct, feedback_message)
-        """
-        user_answer = user_answer.strip().lower()
-        
-        if question.question_type == QuestionType.MULTIPLE_CHOICE:
-            return self._evaluate_mcq_answer(user_answer, question)
-        
-        elif question.question_type == QuestionType.TRUE_FALSE:
-            return self._evaluate_tf_answer(user_answer, question)
-        
-        else:
-            return self._evaluate_open_answer(user_answer, question)
-    
-    def _evaluate_mcq_answer(self, user_answer: str, question: LearningQuestion) -> Tuple[bool, str]:
-        """Evaluate multiple choice question answer."""
-        correct_letter = question.correct_answer.lower()
-        is_correct = user_answer == correct_letter
-        
-        # Find the selected option for feedback
-        option_map = {chr(ord('a') + i): opt for i, opt in enumerate(question.options)}
-        selected_option = option_map.get(user_answer)
-        
-        if is_correct:
-            feedback = f"✅ **Correct!** Great job!\n\n{question.explanation}"
-        else:
-            if selected_option:
-                feedback = f"❌ **Not quite.** {selected_option.explanation}\n\n**Correct answer:** {question.correct_answer}) {option_map[correct_letter].text}\n\n{question.explanation}"
-            else:
-                feedback = f"❌ **Invalid answer.** Please choose A, B, C, or D.\n\n**Correct answer:** {question.correct_answer}) {option_map[correct_letter].text}"
-        
-        return is_correct, feedback
-    
-    def _evaluate_tf_answer(self, user_answer: str, question: LearningQuestion) -> Tuple[bool, str]:
-        """Evaluate true/false question answer."""
-        correct_answer = question.correct_answer.lower()
-        is_correct = user_answer in ['true', 't'] if correct_answer == 'true' else user_answer in ['false', 'f']
-        
-        if is_correct:
-            feedback = f"✅ **Correct!** {question.explanation}"
-        else:
-            feedback = f"❌ **Not quite.** The correct answer is **{question.correct_answer}**.\n\n{question.explanation}"
-        
-        return is_correct, feedback
-    
-    def _evaluate_open_answer(self, user_answer: str, question: LearningQuestion) -> Tuple[bool, str]:
-        """Evaluate open-ended question answer."""
-        # For open-ended questions, be more generous with partial credit
-        correct_keywords = question.correct_answer.lower().split()
-        has_keywords = any(keyword in user_answer for keyword in correct_keywords)
-        
-        if has_keywords:
-            feedback = f"✅ **Good thinking!** {question.explanation}"
-        else:
-            feedback = f"💭 **Interesting perspective.** Here's what I was thinking: {question.explanation}"
-        
-        return has_keywords, feedback
+        """Create a direct nudge to help the user improve their code."""
+        return NudgeGenerator.create_nudge(code, analysis, coaching_state)

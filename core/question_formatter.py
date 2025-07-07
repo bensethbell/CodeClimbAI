@@ -1,9 +1,7 @@
 """
 Question formatting utilities for the adaptive coaching system.
-Extracted from adaptive_coach.py to keep file sizes manageable.
+FIXED: Removed circular import by deferring model imports.
 """
-
-from .coaching_models import LearningQuestion, QuestionType
 
 
 def safe_debug_log(msg: str):
@@ -29,17 +27,18 @@ class QuestionFormatter:
     """Handles formatting of learning questions for display in chat."""
     
     @staticmethod
-    def format_question_message(question: LearningQuestion) -> str:
+    def format_question_message(question) -> str:
         """
         Format a learning question for display in chat.
         Enhanced error handling and cloud deployment compatibility.
+        FIXED: Uses duck typing instead of importing models to avoid circular imports.
         """
         # VALIDATION: Ensure question object is properly formed
         if not question:
             print("ERROR: format_question_message received None question")
             return "**Error:** Question object is None. Please try submitting your code again."
         
-        # VALIDATION: Check required attributes
+        # VALIDATION: Check required attributes using duck typing
         required_attrs = ['question_type', 'title', 'question_text']
         for attr in required_attrs:
             if not hasattr(question, attr):
