@@ -489,6 +489,8 @@ def main():
         st.session_state.editor_key = 0
     if "current_code" not in st.session_state:
         st.session_state.current_code = ""
+    if "learning_started" not in st.session_state:  # NEW: Track learning state
+        st.session_state.learning_started = False
     
     # Apply IMPROVED compact styling with MCQ fixes
     apply_improved_compact_styling()
@@ -510,23 +512,29 @@ def main():
     # RENDER WELCOME POPUP/BANNER FIRST (before main UI)
     welcome_shown = render_appropriate_welcome()
     
-    # Main UI
+    # Main UI title (always show)
     st.title("🚀 CodeClimbAI")
     st.markdown(
         "<h4 style='color: gray; font-weight: normal; margin-top: -10px;'>Don't code faster — code better.</h4>",
         unsafe_allow_html=True
     )
     
-    # Create TWO columns
-    col1, col2 = st.columns([1, 1])
-    
-    # Left column - Code Input
-    with col1:
-        UIManager.render_code_input_panel()
-    
-    # Right column - Claude Assistant
-    with col2:
-        UIManager.render_chat_panel(assistant)
+    # CONDITIONAL UI: Only show main interface if learning has started OR welcome popup dismissed
+    if st.session_state.get('learning_started', False) or st.session_state.get('welcome_popup_shown', False):
+        # Create TWO columns
+        col1, col2 = st.columns([1, 1])
+        
+        # Left column - Code Input
+        with col1:
+            UIManager.render_code_input_panel()
+        
+        # Right column - Claude Assistant
+        with col2:
+            UIManager.render_chat_panel(assistant)
+    else:
+        # Show minimal interface until user starts learning
+        st.markdown("### 👆 Click the button above to start your learning journey!")
+        st.info("💡 **Welcome!** Click 'Let's Start Learning!' to begin exploring code optimization with interactive guidance.")
 
 if __name__ == "__main__":
     main()
