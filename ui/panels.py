@@ -10,48 +10,108 @@ from core.session_manager import SessionManager
 if ACE_AVAILABLE:
     from streamlit_ace import st_ace
 
-def _load_debug_example():
+def _analyze_example_for_optimization(code):
     """
-    PRESERVED ORIGINAL FUNCTION: Callback to inject a random example into the code editor.
-    Enhanced with first-time logic while maintaining all original functionality.
+    Analyze example code to ensure it has optimization opportunities.
+    Returns True if code needs optimization, False if already optimized.
     """
     try:
-        print("DEBUG: _load_debug_example called")
+        from core.coaching_helpers import CodeAnalysisHelper
+        
+        # Analyze the code for coaching opportunities
+        analysis = CodeAnalysisHelper.analyze_code_for_coaching(code)
+        
+        # Check for key optimization issues
+        optimization_issues = [
+            'has_iterrows',
+            'has_string_concat', 
+            'has_nested_loops',
+            'has_manual_loop',
+            'has_inefficient_filtering'
+        ]
+        
+        # Count how many issues are present
+        issue_count = sum(1 for issue in optimization_issues if analysis.get(issue, False))
+        
+        print(f"DEBUG: Example analysis - Issues found: {issue_count}")
+        print(f"DEBUG: Analysis details: {analysis}")
+        
+        # Consider it optimizable if it has at least one major issue
+        return issue_count > 0
+        
+    except ImportError:
+        print("DEBUG: CodeAnalysisHelper not available, assuming example needs optimization")
+        return True
+    except Exception as e:
+        print(f"DEBUG: Error analyzing example: {e}")
+        return True
+
+def _load_debug_example():
+    """
+    ENHANCED: Callback to inject an example with verified optimization opportunities.
+    Analyzes examples before presenting to ensure learning value.
+    """
+    try:
+        print("DEBUG: _load_debug_example called with pre-analysis")
         
         # ENHANCED: Add first-time logic while preserving original behavior
         if 'first_example_loaded' not in st.session_state:
             st.session_state.first_example_loaded = False
         
-        if not st.session_state.first_example_loaded:
-            # First time: Load the built-in example
-            from templates.examples import get_example_code
-            code = get_example_code()
-            category = "performance" 
-            st.session_state.first_example_loaded = True
-            print(f"DEBUG: Loading FIRST example (built-in): {code[:30]}...")
-        else:
-            # PRESERVED ORIGINAL LOGIC: Get the first example code for exclusion
-            from templates.examples import get_example_code, ExampleGenerator
-            first_example = get_example_code()
+        max_attempts = 5  # Prevent infinite loops
+        attempt = 0
+        
+        while attempt < max_attempts:
+            attempt += 1
             
-            # Also try to get it from adaptive coach if available
-            exclude_code = first_example
-            if (hasattr(st.session_state, 'session') and 
-                st.session_state.session and
-                hasattr(st.session_state.session, 'coaching_state') and
-                st.session_state.session.coaching_state):
+            if not st.session_state.first_example_loaded:
+                # First time: Load the built-in example
+                from templates.examples import get_example_code
+                code = get_example_code()
+                category = "performance" 
+                st.session_state.first_example_loaded = True
+                print(f"DEBUG: Loading FIRST example (built-in): {code[:30]}...")
+            else:
+                # PRESERVED ORIGINAL LOGIC: Get the first example code for exclusion
+                from templates.examples import get_example_code, ExampleGenerator
+                first_example = get_example_code()
                 
-                # Try to get from session if available
-                coaching_state = st.session_state.session.coaching_state
-                if hasattr(coaching_state, 'first_example_code') and coaching_state.first_example_code:
-                    exclude_code = coaching_state.first_example_code
-                    print(f"DEBUG: Using first_example_code from coaching_state: {exclude_code[:30]}...")
+                # Also try to get it from adaptive coach if available
+                exclude_code = first_example
+                if (hasattr(st.session_state, 'session') and 
+                    st.session_state.session and
+                    hasattr(st.session_state.session, 'coaching_state') and
+                    st.session_state.session.coaching_state):
+                    
+                    # Try to get from session if available
+                    coaching_state = st.session_state.session.coaching_state
+                    if hasattr(coaching_state, 'first_example_code') and coaching_state.first_example_code:
+                        exclude_code = coaching_state.first_example_code
+                        print(f"DEBUG: Using first_example_code from coaching_state: {exclude_code[:30]}...")
+                
+                print(f"DEBUG: Excluding code: {exclude_code[:30]}...")
+                
+                # Get random example with proper exclusion
+                code, category = ExampleGenerator.get_random_example(exclude_code=exclude_code)
+                print(f"DEBUG: Got random example from {category}: {code[:30]}...")
             
-            print(f"DEBUG: Excluding code: {exclude_code[:30]}...")
+            # ANALYZE EXAMPLE FOR OPTIMIZATION OPPORTUNITIES
+            needs_optimization = _analyze_example_for_optimization(code)
             
-            # Get random example with proper exclusion
-            code, category = ExampleGenerator.get_random_example(exclude_code=exclude_code)
-            print(f"DEBUG: Got random example from {category}: {code[:30]}...")
+            if needs_optimization:
+                print(f"DEBUG: Example approved - has optimization opportunities (attempt {attempt})")
+                break
+            else:
+                print(f"DEBUG: Example rejected - already optimized (attempt {attempt})")
+                if not st.session_state.first_example_loaded:
+                    # If even the first example is optimized, something is wrong
+                    print("WARNING: First example appears optimized - using anyway")
+                    break
+                # For random examples, try again
+                continue
+        
+        if attempt >= max_attempts:
+            print("WARNING: Max attempts reached, using last generated example")
         
         # PRESERVED ORIGINAL: Ensure session state is properly initialized
         if "current_code" not in st.session_state:
@@ -70,11 +130,11 @@ def _load_debug_example():
         if hasattr(st.session_state, 'session') and st.session_state.session:
             from core.session_manager import add_message_to_session
             
-            # ENHANCED: Better message based on first-time vs random
+            # ENHANCED: Better message based on first-time vs random with analysis info
             if not st.session_state.first_example_loaded:
-                message = f"✅ **Example loaded!** Main pandas optimization example is now in the editor. Click '📤 Submit Code' to begin learning!"
+                message = f"✅ **Verified example loaded!** Pandas optimization example with confirmed learning opportunities is now in the editor. Click '📤 Submit Code' to begin!"
             else:
-                message = f"🎲 **Random example loaded!** New {category} example is now in the editor. Click '📤 Submit Code' to analyze it!"
+                message = f"🎲 **Analyzed example loaded!** New {category} example with optimization opportunities is ready. Click '📤 Submit Code' to analyze it!"
             
             add_message_to_session(
                 st.session_state.session, 
@@ -82,24 +142,24 @@ def _load_debug_example():
                 message
             )
         
-        print("DEBUG: _load_debug_example completed successfully")
+        print("DEBUG: _load_debug_example completed successfully with analysis")
         
     except Exception as e:
         print(f"ERROR in _load_debug_example: {str(e)}")
         import traceback
         print(f"Traceback: {traceback.format_exc()}")
         
-        # PRESERVED ORIGINAL: Fallback code
+        # PRESERVED ORIGINAL: Fallback code with known issues
         try:
-            fallback_code = '''def simple_calculation(numbers):
-    result = 0
-    for num in numbers:
-        result += num * 2
-    return result'''
+            fallback_code = '''def process_data(df):
+    results = []
+    for idx, row in df.iterrows():  # Inefficient - has iterrows issue
+        results.append(row["value"] * 2)
+    return results'''
             
             st.session_state.current_code = fallback_code
             st.session_state.editor_key += 1
-            print("DEBUG: Loaded fallback code")
+            print("DEBUG: Loaded fallback code with known iterrows issue")
         except:
             print("ERROR: Even fallback failed")
 
@@ -126,10 +186,10 @@ class PanelRenderer:
             # ENHANCED: Dynamic button text and help
             if not st.session_state.first_example_loaded:
                 button_text = "📚 Get Example"
-                button_help = "Load the main pandas optimization example"
+                button_help = "Load verified example with optimization opportunities"
             else:
                 button_text = "🎲 Random Example" 
-                button_help = "Load a different example for practice"
+                button_help = "Load different example with confirmed learning value"
             
             if st.button(button_text, 
                         key="load_random_example", 
@@ -179,7 +239,7 @@ class PanelRenderer:
     def render_getting_started_section():
         """ENHANCED: Render the getting started instructions."""
         st.info(
-            "Click the button above for sample code, or paste your own code and click 'Submit Code' to start learning!"
+            "Click 'Get Example' for verified learning code, or paste your own code and click 'Submit Code' to start learning!"
         )
     
     @staticmethod

@@ -101,19 +101,19 @@ def create_simple_welcome_popup():
         st.success("🚀 **Welcome to CodeClimbAI!**")
         
         st.markdown("""
-        ### Learn by discovery, not by memorization.
+        ### Transform YOUR code into learning opportunities
         
-        **🧠 Our Philosophy:**
-        - **Questions over answers** - We guide you to insights through Socratic questioning
-        - **Practice with real code** - No theoretical examples, work with actual optimization problems  
-        - **Adaptive learning** - Questions adjust to your skill level and progress
-        - **Safe exploration** - Experiment freely with code execution in a protected environment
+        **🎯 Learn from your actual code, not textbook examples:**
+        - **Submit your real projects** - We analyze YOUR coding patterns and habits
+        - **Discover through questioning** - Instead of giving answers, we guide you to insights
+        - **Build lasting skills** - Learn optimization thinking that transfers to any codebase
+        - **Practice interview scenarios** - Identify and fix performance issues that matter in job interviews
         
-        **🎯 Ready to start?**
-        - **Option 1:** Click the **"Generate Example"** button in the left panel to load sample code
-        - **Option 2:** Paste your own Python code in the left editor and click "📤 Submit Code"
+        **🚀 Ready to become a better coder?**
+        - **Option 1:** Click **"📚 Get Example"** in the left panel to see how it works
+        - **Option 2:** Paste your own Python code and click "📤 Submit Code" to start learning from YOUR code
         
-        💡 *Remember: There are no wrong answers, only learning opportunities!*
+        💡 *This isn't about coding faster—it's about coding better through understanding your own patterns.*
         """)
 
 def create_compact_welcome_banner():
@@ -152,6 +152,7 @@ def render_welcome_popup():
         with col2:
             if st.button("✨ Let's Start Learning!", type="primary", use_container_width=True):
                 st.session_state.welcome_popup_shown = True
+                st.session_state.learning_started = True  # FIXED: Enable main UI
                 st.rerun()
         
         # Add some spacing
