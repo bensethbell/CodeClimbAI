@@ -1,6 +1,7 @@
+# templates/examples.py
 """
-Enhanced example code snippets with both problematic and optimized versions.
-ENHANCED VERSION: Each example includes both problem and solution for comparison.
+Enhanced example code snippets with clear docstrings and no spoiler comments.
+FIXED VERSION: Each example has clear purpose and hidden optimization opportunities.
 """
 print("👀 enhanced_examples.py loaded!")
 import random
@@ -32,8 +33,12 @@ def normalize_code(code: str) -> str:
     return '\n'.join(lines)
 
 def get_example_code() -> str:
-    """Get the main pandas optimization example (problematic version)."""
+    """Get the main pandas optimization example with clear docstring."""
     return '''def add_metrics(df):
+    """Calculate additional metrics for sales data.
+    INPUT: DataFrame with 'price' and 'tax' columns
+    OUTPUT: DataFrame with new 'total' column added
+    """
     results = []
     for idx, row in df.iterrows():
         results.append(row["price"] * 0.2 + row["tax"])
@@ -41,14 +46,18 @@ def get_example_code() -> str:
     return df'''
 
 def get_enhanced_performance_examples() -> Dict[str, ExamplePair]:
-    """Get performance examples with both problematic and optimized versions."""
+    """Get performance examples with clear docstrings and no spoiler comments."""
     return {
         "pandas_iterrows": ExamplePair(
             name="pandas_iterrows",
             category="performance",
             problem_code='''def process_sales_data(df):
+    """Apply regional sales adjustments to the dataset.
+    INPUT: DataFrame with 'sales' and 'region' columns
+    OUTPUT: DataFrame with 'adjusted_sales' column added
+    """
     totals = []
-    for idx, row in df.iterrows():  # ISSUE: Uses iterrows()
+    for idx, row in df.iterrows():
         if row['region'] == 'North':
             totals.append(row['sales'] * 1.1)
         else:
@@ -56,6 +65,10 @@ def get_enhanced_performance_examples() -> Dict[str, ExamplePair]:
     df['adjusted_sales'] = totals
     return df''',
             solution_code='''def process_sales_data(df):
+    """Apply regional sales adjustments to the dataset.
+    INPUT: DataFrame with 'sales' and 'region' columns
+    OUTPUT: DataFrame with 'adjusted_sales' column added
+    """
     # Vectorized solution - much faster
     df['adjusted_sales'] = df['sales'].where(df['region'] != 'North', df['sales'] * 1.1)
     return df''',
@@ -67,13 +80,21 @@ def get_enhanced_performance_examples() -> Dict[str, ExamplePair]:
             name="nested_loops", 
             category="performance",
             problem_code='''def find_duplicates(data1, data2):
+    """Find items that appear in both datasets.
+    INPUT: Two lists of dictionaries with 'id' keys
+    OUTPUT: List of items from data1 that have matching IDs in data2
+    """
     duplicates = []
-    for item1 in data1:  # ISSUE: Nested loops O(n²)
+    for item1 in data1:
         for item2 in data2:
             if item1['id'] == item2['id']:
                 duplicates.append(item1)
     return duplicates''',
             solution_code='''def find_duplicates(data1, data2):
+    """Find items that appear in both datasets.
+    INPUT: Two lists of dictionaries with 'id' keys
+    OUTPUT: List of items from data1 that have matching IDs in data2
+    """
     # Use set for O(1) lookup - O(n) complexity
     ids_in_data2 = {item['id'] for item in data2}
     duplicates = [item for item in data1 if item['id'] in ids_in_data2]
@@ -86,11 +107,19 @@ def get_enhanced_performance_examples() -> Dict[str, ExamplePair]:
             name="string_concatenation",
             category="performance", 
             problem_code='''def build_report(items):
+    """Generate a formatted report from a list of items.
+    INPUT: List of dictionaries with 'name' and 'price' keys
+    OUTPUT: Multi-line string report
+    """
     report = ""
-    for item in items:  # ISSUE: String concatenation in loop
-        report = report + f"Item: {item['name']}, Price: ${item['price']}\\n"
+    for item in items:
+        report += f"Item: {item['name']}, Price: ${item['price']}\\n"
     return report''',
             solution_code='''def build_report(items):
+    """Generate a formatted report from a list of items.
+    INPUT: List of dictionaries with 'name' and 'price' keys
+    OUTPUT: Multi-line string report
+    """
     # Collect in list, then join - much more efficient
     lines = []
     for item in items:
@@ -100,68 +129,155 @@ def get_enhanced_performance_examples() -> Dict[str, ExamplePair]:
             performance_improvement="Linear vs quadratic string operations"
         ),
         
+        "manual_indexing_with_concat": ExamplePair(
+            name="manual_indexing_with_concat",
+            category="performance",
+            problem_code='''def format_data(items):
+    """Convert a list of items to a comma-separated string.
+    INPUT: List of any objects that can be converted to string
+    OUTPUT: Single string with items separated by commas
+    """
+    result = ""
+    for i in range(len(items)):
+        result += str(items[i]) + ", "
+    return result''',
+            solution_code='''def format_data(items):
+    """Convert a list of items to a comma-separated string.
+    INPUT: List of any objects that can be converted to string
+    OUTPUT: Single string with items separated by commas
+    """
+    # Both more Pythonic and efficient
+    return ", ".join(str(item) for item in items)''',
+            learning_focus="Direct iteration and efficient string joining",
+            performance_improvement="More readable and much faster"
+        ),
+        
+        "inefficient_search_with_loops": ExamplePair(
+            name="inefficient_search_with_loops",
+            category="performance",
+            problem_code='''def find_matching_users(users, target_ids):
+    """Find users whose IDs match the target list.
+    INPUT: List of user dicts with 'id' key, list of target IDs
+    OUTPUT: List of matching user dictionaries
+    """
+    matches = []
+    for target_id in target_ids:
+        for user in users:
+            if user['id'] == target_id:
+                matches.append(user)
+    return matches''',
+            solution_code='''def find_matching_users(users, target_ids):
+    """Find users whose IDs match the target list.
+    INPUT: List of user dicts with 'id' key, list of target IDs
+    OUTPUT: List of matching user dictionaries
+    """
+    # Use dictionary for O(1) lookup instead of O(n²) nested loops
+    user_dict = {user['id']: user for user in users}
+    return [user_dict[target_id] for target_id in target_ids if target_id in user_dict]''',
+            learning_focus="Data structure choice and avoiding nested loops",
+            performance_improvement="O(n²) to O(n) complexity reduction"
+        ),
+
         "inefficient_filtering": ExamplePair(
             name="inefficient_filtering",
             category="performance",
             problem_code='''def filter_expensive_items(products):
+    """Get products that cost more than $100.
+    INPUT: List of product dictionaries with 'price' key
+    OUTPUT: List of products where price > 100
+    """
     expensive = []
-    for product in products:  # ISSUE: Manual filtering instead of list comprehension
+    for product in products:
         if product['price'] > 100:
             expensive.append(product)
     return expensive''',
             solution_code='''def filter_expensive_items(products):
+    """Get products that cost more than $100.
+    INPUT: List of product dictionaries with 'price' key
+    OUTPUT: List of products where price > 100
+    """
     # List comprehension - more Pythonic and efficient
     return [product for product in products if product['price'] > 100]''',
             learning_focus="List comprehensions vs manual loops",
             performance_improvement="More readable and typically faster"
         ),
-        
-        "manual_indexing": ExamplePair(
-            name="manual_indexing",
+
+        "inefficient_counting": ExamplePair(
+            name="inefficient_counting",
             category="performance",
-            problem_code='''def calculate_total(numbers):
-    total = 0
-    for i in range(len(numbers)):  # ISSUE: Manual indexing instead of direct iteration
-        total = total + numbers[i]
-    return total''',
-            solution_code='''def calculate_total(numbers):
-    # Built-in sum function - optimized and readable
-    return sum(numbers)''',
-            learning_focus="Built-in functions vs manual implementation",
+            problem_code='''def count_occurrences(items):
+    """Count how many times each item appears in the list.
+    INPUT: List of hashable items
+    OUTPUT: Dictionary mapping items to their counts
+    """
+    counts = {}
+    for item in items:
+        if item in counts:
+            counts[item] = counts[item] + 1
+        else:
+            counts[item] = 1
+    return counts''',
+            solution_code='''from collections import Counter
+
+def count_occurrences(items):
+    """Count how many times each item appears in the list.
+    INPUT: List of hashable items
+    OUTPUT: Dictionary mapping items to their counts
+    """
+    # Counter is optimized for this exact use case
+    return Counter(items)''',
+            learning_focus="Using specialized data structures",
             performance_improvement="Leverages C-level optimizations"
         ),
-        
-        "inefficient_search": ExamplePair(
-            name="inefficient_search",
+
+        "inefficient_aggregation_with_concat": ExamplePair(
+            name="inefficient_aggregation_with_concat",
             category="performance",
-            problem_code='''def find_user_by_id(users, target_id):
-    for user in users:  # ISSUE: Linear search in list
-        if user['id'] == target_id:
-            return user
-    return None''',
-            solution_code='''def find_user_by_id(users_dict, target_id):
-    # Use dictionary for O(1) lookup instead of O(n) search
-    return users_dict.get(target_id)
-    
-# Usage: users_dict = {user['id']: user for user in users}''',
-            learning_focus="Data structure choice for efficient lookups",
-            performance_improvement="O(n) to O(1) lookup time"
+            problem_code='''def summarize_numbers(numbers):
+    """Create a running summary of number additions.
+    INPUT: List of numbers
+    OUTPUT: String showing running totals
+    """
+    total = 0
+    summary = ""
+    for num in numbers:
+        total = total + num
+        summary += f"Added {num}, total now {total}\\n"
+    return summary''',
+            solution_code='''def summarize_numbers(numbers):
+    """Create a running summary of number additions.
+    INPUT: List of numbers
+    OUTPUT: String showing running totals
+    """
+    # Use built-in sum and efficient string building
+    total = sum(numbers)
+    lines = [f"Added {num}, total now {sum(numbers[:i+1])}" for i, num in enumerate(numbers)]
+    return "\\n".join(lines)''',
+            learning_focus="Built-in functions and efficient string operations",
+            performance_improvement="Leverages optimizations and avoids quadratic string building"
         )
     }
 
 def get_enhanced_readability_examples() -> Dict[str, ExamplePair]:
-    """Get readability examples with both problematic and clean versions."""
+    """Get readability examples with clear docstrings and no spoiler comments."""
     return {
         "unclear_variables": ExamplePair(
             name="unclear_variables",
             category="readability",
-            problem_code='''def calc(x, y, z):  # ISSUE: Unclear variable names
-    a = x * 0.1  # ISSUE: Single letter variables, no comments
+            problem_code='''def calc(x, y, z):
+    """Calculate final amount including fees and tax.
+    INPUT: Base price, base fee, additional fee
+    OUTPUT: Total amount including all charges
+    """
+    a = x * 0.1
     b = y + z
     c = a + b
     return c''',
             solution_code='''def calculate_total_with_tax(price, base_fee, additional_fee):
-    """Calculate total cost including tax and fees."""
+    """Calculate final amount including fees and tax.
+    INPUT: Base price, base fee, additional fee
+    OUTPUT: Total amount including all charges
+    """
     tax_amount = price * 0.1  # 10% tax rate
     total_fees = base_fee + additional_fee
     final_total = tax_amount + total_fees
@@ -173,121 +289,125 @@ def get_enhanced_readability_examples() -> Dict[str, ExamplePair]:
         "repetitive_code": ExamplePair(
             name="repetitive_code",
             category="readability",
-            problem_code='''def process_regions(df):  # ISSUE: Repetitive code patterns
+            problem_code='''def process_regions(df):
+    """Calculate sales totals for each region.
+    INPUT: DataFrame with 'region' and 'sales' columns
+    OUTPUT: List of sales totals [north, south, east, west]
+    """
     north_data = df[df['region'] == 'North']
     north_result = north_data['sales'].sum()
-    south_data = df[df['region'] == 'South']  # REPETITIVE
+    south_data = df[df['region'] == 'South']
     south_result = south_data['sales'].sum()
-    east_data = df[df['region'] == 'East']    # REPETITIVE
+    east_data = df[df['region'] == 'East']
     east_result = east_data['sales'].sum()
-    west_data = df[df['region'] == 'West']    # REPETITIVE
+    west_data = df[df['region'] == 'West']
     west_result = west_data['sales'].sum()
     return [north_result, south_result, east_result, west_result]''',
             solution_code='''def process_regions(df):
-    """Process sales data by region using DRY principle."""
-    regions = ['North', 'South', 'East', 'West']
-    results = []
-    for region in regions:
-        region_data = df[df['region'] == region]
-        region_total = region_data['sales'].sum()
-        results.append(region_total)
-    return results
-    
-    # Even better: return df.groupby('region')['sales'].sum().to_dict()''',
-            learning_focus="DRY principle and code deduplication",
+    """Calculate sales totals for each region.
+    INPUT: DataFrame with 'region' and 'sales' columns
+    OUTPUT: Dictionary mapping region names to sales totals
+    """
+    # Even better: use pandas groupby
+    return df.groupby('region')['sales'].sum().to_dict()''',
+            learning_focus="DRY principle and pandas groupby",
             performance_improvement="Easier to maintain and extend"
-        ),
-        
-        "long_function": ExamplePair(
-            name="long_function",
-            category="readability",
-            problem_code='''def analyze_sales(df):  # ISSUE: Function doing too many things
-    df['tax'] = df['price'] * 0.08
-    df['shipping'] = df['price'] * 0.05
-    df['total'] = df['price'] + df['tax'] + df['shipping']
-    df['discount'] = 0
-    df.loc[df['total'] > 100, 'discount'] = df['total'] * 0.1
-    df['final_price'] = df['total'] - df['discount']
-    north_sales = df[df['region'] == 'North']['final_price'].sum()
-    south_sales = df[df['region'] == 'South']['final_price'].sum()
-    east_sales = df[df['region'] == 'East']['final_price'].sum()
-    west_sales = df[df['region'] == 'West']['final_price'].sum()
-    return {'North': north_sales, 'South': south_sales, 'East': east_sales, 'West': west_sales}''',
-            solution_code='''def calculate_pricing(df):
-    """Calculate taxes, shipping, and discounts."""
-    df['tax'] = df['price'] * 0.08
-    df['shipping'] = df['price'] * 0.05
-    df['total'] = df['price'] + df['tax'] + df['shipping']
-    df['discount'] = df['total'].where(df['total'] <= 100, df['total'] * 0.1).fillna(0)
-    df['final_price'] = df['total'] - df['discount']
-    return df
-
-def summarize_by_region(df):
-    """Summarize sales totals by region."""
-    return df.groupby('region')['final_price'].sum().to_dict()
-
-def analyze_sales(df):
-    """Main analysis function - orchestrates the workflow."""
-    df = calculate_pricing(df)
-    return summarize_by_region(df)''',
-            learning_focus="Single Responsibility Principle and function decomposition",
-            performance_improvement="Easier testing, debugging, and reuse"
         )
     }
 
 def get_enhanced_bug_examples() -> Dict[str, ExamplePair]:
-    """Get bug examples with both problematic and fixed versions."""
+    """Get bug examples with clear docstrings and no spoiler comments."""
     return {
         "index_error": ExamplePair(
             name="index_error",
             category="bugs",
-            problem_code='''def get_last_three(items):  # ISSUE: No error handling for short lists
-    return [items[-1], items[-2], items[-3]]''',
+            problem_code='''def get_last_three(items):
+    """Get the last three items from a list.
+    INPUT: List of any items
+    OUTPUT: List containing up to the last 3 items
+    """
+    result = []
+    for i in range(3):
+        result.append(items[len(items) - 3 + i])
+    return result''',
             solution_code='''def get_last_three(items):
-    """Get up to the last three items from a list."""
+    """Get the last three items from a list.
+    INPUT: List of any items
+    OUTPUT: List containing up to the last 3 items
+    """
     if len(items) == 0:
         return []
     elif len(items) < 3:
         return items.copy()  # Return all available items
     else:
         return items[-3:]    # Return last three''',
-            learning_focus="Defensive programming and edge case handling",
-            performance_improvement="Prevents runtime crashes"
-        ),
-        
-        "division_by_zero": ExamplePair(
-            name="division_by_zero",
-            category="bugs",
-            problem_code='''def calculate_average(numbers):  # ISSUE: No check for empty list
-    return sum(numbers) / len(numbers)''',
-            solution_code='''def calculate_average(numbers):
-    """Calculate average with proper error handling."""
-    if not numbers:  # Handle empty list
-        return 0  # or raise ValueError("Cannot calculate average of empty list")
-    return sum(numbers) / len(numbers)''',
-            learning_focus="Input validation and error prevention",
-            performance_improvement="Prevents division by zero errors"
+            learning_focus="Defensive programming and Pythonic slicing",
+            performance_improvement="Prevents runtime crashes and cleaner code"
         ),
         
         "mutable_default": ExamplePair(
             name="mutable_default",
             category="bugs", 
-            problem_code='''def add_item(item, item_list=[]):  # ISSUE: Mutable default argument
-    item_list.append(item)
-    return item_list''',
+            problem_code='''def add_item(item, item_list=[]):
+    """Add an item to a list and return the updated list.
+    INPUT: Item to add, optional existing list
+    OUTPUT: New list containing all items
+    """
+    new_list = []
+    for existing_item in item_list:
+        new_list.append(existing_item)
+    new_list.append(item)
+    return new_list''',
             solution_code='''def add_item(item, item_list=None):
-    """Add item to list, creating new list if none provided."""
+    """Add an item to a list and return the updated list.
+    INPUT: Item to add, optional existing list
+    OUTPUT: New list containing all items
+    """
     if item_list is None:
         item_list = []  # Create fresh list each time
-    item_list.append(item)
-    return item_list''',
-            learning_focus="Avoiding mutable default argument pitfall",
-            performance_improvement="Prevents unexpected behavior and bugs"
+    result = item_list.copy()  # Efficient copying
+    result.append(item)
+    return result''',
+            learning_focus="Avoiding mutable defaults and efficient copying",
+            performance_improvement="Prevents unexpected behavior and cleaner code"
+        ),
+
+        "inefficient_file_processing": ExamplePair(
+            name="inefficient_file_processing",
+            category="bugs",
+            problem_code='''def process_large_file(filename):
+    """Read and clean lines from a text file.
+    INPUT: Path to text file
+    OUTPUT: List of cleaned lines (no newlines)
+    """
+    lines = []
+    file = open(filename, 'r')
+    for line in file:
+        processed_line = ""
+        for char in line:
+            if char != '\\n':
+                processed_line = processed_line + char
+        lines.append(processed_line)
+    file.close()
+    return lines''',
+            solution_code='''def process_large_file(filename):
+    """Read and clean lines from a text file.
+    INPUT: Path to text file
+    OUTPUT: List of cleaned lines (no newlines)
+    """
+    try:
+        with open(filename, 'r') as file:  # Context manager
+            return [line.strip() for line in file]  # List comprehension
+    except FileNotFoundError:
+        return []  # Graceful error handling''',
+            learning_focus="Context managers, list comprehensions, and error handling",
+            performance_improvement="Much faster and prevents resource leaks"
         )
     }
 
+# Rest of the file remains the same...
 class EnhancedExampleGenerator:
-    """Enhanced example generator with problem/solution pairs and validation."""
+    """Enhanced example generator with verified optimization opportunities."""
     
     @staticmethod
     def get_all_example_pairs() -> Dict[str, ExamplePair]:
@@ -299,11 +419,31 @@ class EnhancedExampleGenerator:
         return all_pairs
     
     @staticmethod
+    def validate_example_has_issues(example_pair: ExamplePair) -> bool:
+        """Validate that an example has clear optimization opportunities."""
+        code = example_pair.problem_code
+        
+        # Check for clear performance issues
+        has_iterrows = 'iterrows' in code.lower()
+        has_string_concat = '+=' in code and any(s in code.lower() for s in ['str', '"', "'"])
+        has_nested_loops = code.count('for ') > 1
+        has_manual_indexing = 'range(len(' in code
+        has_manual_iteration = 'for i in range' in code
+        has_inefficient_patterns = any([
+            'append(' in code and 'for' in code,  # Manual list building
+            '.iloc[' in code,  # Pandas inefficiency
+            'if item in' in code and 'for' in code,  # Inefficient searching
+        ])
+        
+        # Must have at least one clear issue
+        return any([
+            has_iterrows, has_string_concat, has_nested_loops, 
+            has_manual_indexing, has_manual_iteration, has_inefficient_patterns
+        ])
+    
+    @staticmethod
     def get_random_example_pair(exclude_categories: list = None, exclude_code: str = None) -> Tuple[ExamplePair, str]:
-        """
-        Get a random example pair with exclusion logic.
-        Returns: (ExamplePair object, "problem"|"solution")
-        """
+        """Get a random example pair with exclusion logic and validation."""
         print(f"DEBUG: get_random_example_pair called with exclude_code: {exclude_code[:30] if exclude_code else None}...")
         
         # Get all example pairs
@@ -332,30 +472,45 @@ class EnhancedExampleGenerator:
                 if (problem_normalized != exclude_normalized and 
                     solution_normalized != exclude_normalized and
                     problem_normalized != main_example_normalized):
-                    filtered_pairs[name] = pair
+                    # Validate the example has clear issues
+                    if EnhancedExampleGenerator.validate_example_has_issues(pair):
+                        filtered_pairs[name] = pair
+                    else:
+                        print(f"DEBUG: Excluded {name} (no clear optimization opportunities)")
                 else:
                     print(f"DEBUG: Excluded {name} (matched exclude pattern)")
             
             all_pairs = filtered_pairs
-            print(f"DEBUG: Example pairs after exclusion: {len(all_pairs)}")
+            print(f"DEBUG: Example pairs after filtering: {len(all_pairs)}")
         
         # Ensure we have examples left
         if not all_pairs:
-            print("DEBUG: No examples left after exclusion, using fallback")
-            # Fallback with guaranteed issue
+            print("DEBUG: No examples left after exclusion, using guaranteed fallback")
+            # Fallback with guaranteed multiple issues
             fallback_pair = ExamplePair(
-                name="fallback_manual_loop",
+                name="fallback_multiple_issues",
                 category="performance",
-                problem_code='''def calculate_statistics(data):
+                problem_code='''def process_data(items):
+    """Transform a list of items to uppercase strings.
+    INPUT: List of items that can be converted to strings
+    OUTPUT: List of uppercase string representations
+    """
     results = []
-    for i in range(len(data)):  # ISSUE: Manual indexing
-        results.append(data[i] * 2)
+    for i in range(len(items)):
+        result = ""
+        for char in str(items[i]):
+            result = result + char.upper()
+        results.append(result)
     return results''',
-                solution_code='''def calculate_statistics(data):
-    # List comprehension - more Pythonic
-    return [value * 2 for value in data]''',
-                learning_focus="Manual indexing vs direct iteration",
-                performance_improvement="More readable and efficient"
+                solution_code='''def process_data(items):
+    """Transform a list of items to uppercase strings.
+    INPUT: List of items that can be converted to strings
+    OUTPUT: List of uppercase string representations
+    """
+    # Multiple optimizations: direct iteration + list comprehension + str methods
+    return [str(item).upper() for item in items]''',
+                learning_focus="Multiple optimization opportunities",
+                performance_improvement="Much more readable and efficient"
             )
             return fallback_pair, "problem"
         
@@ -368,53 +523,22 @@ class EnhancedExampleGenerator:
         return selected_pair, "problem"
     
     @staticmethod
-    def validate_example_has_issues(example_pair: ExamplePair) -> Dict[str, bool]:
-        """
-        Validate that an example pair has detectable issues in problem vs solution.
-        Returns dict of detected differences.
-        """
-        from core.coaching_helpers import CodeAnalysisHelper
-        
-        try:
-            # Analyze both problem and solution
-            problem_analysis = CodeAnalysisHelper.analyze_code_for_coaching(example_pair.problem_code)
-            solution_analysis = CodeAnalysisHelper.analyze_code_for_coaching(example_pair.solution_code)
-            
-            # Check for significant differences
-            differences = {}
-            for key in problem_analysis:
-                if key.startswith('has_'):
-                    problem_has_issue = problem_analysis.get(key, False)
-                    solution_has_issue = solution_analysis.get(key, False)
-                    # Difference exists if problem has issue but solution doesn't
-                    differences[key] = problem_has_issue and not solution_has_issue
-            
-            print(f"DEBUG: Validation for {example_pair.name}:")
-            print(f"  Problem issues: {[k for k, v in problem_analysis.items() if k.startswith('has_') and v]}")
-            print(f"  Solution issues: {[k for k, v in solution_analysis.items() if k.startswith('has_') and v]}")
-            print(f"  Significant differences: {[k for k, v in differences.items() if v]}")
-            
-            return differences
-            
-        except ImportError:
-            # Fallback if CodeAnalysisHelper not available
-            print("DEBUG: CodeAnalysisHelper not available for validation")
-            return {"validation": True}  # Assume valid
-    
-    @staticmethod
     def get_example_by_category(category: str) -> Tuple[str, str]:
         """Get a problem example by category. Returns (code, category)."""
         all_pairs = EnhancedExampleGenerator.get_all_example_pairs()
         
-        # Filter by category
-        category_pairs = {k: v for k, v in all_pairs.items() if v.category == category}
+        # Filter by category and validate
+        category_pairs = {}
+        for k, v in all_pairs.items():
+            if v.category == category and EnhancedExampleGenerator.validate_example_has_issues(v):
+                category_pairs[k] = v
         
         if category_pairs:
-            # Return the first example's problem code
+            # Return the first valid example's problem code
             first_pair = list(category_pairs.values())[0]
             return first_pair.problem_code, category
         else:
-            # Default to main example
+            # Default to main example which is guaranteed to have issues
             return get_example_code(), "performance"
 
 # Legacy compatibility functions
@@ -438,9 +562,7 @@ class ExampleGenerator:
     
     @staticmethod
     def get_random_example(exclude_categories: list = None, exclude_code: str = None) -> Tuple[str, str]:
-        """
-        Legacy method - returns (problem_code, category) for backwards compatibility.
-        """
+        """Legacy method - returns (problem_code, category) for backwards compatibility."""
         example_pair, version = EnhancedExampleGenerator.get_random_example_pair(
             exclude_categories=exclude_categories, 
             exclude_code=exclude_code

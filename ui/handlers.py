@@ -1,3 +1,4 @@
+# ui/handlers.py
 import streamlit as st
 from datetime import datetime
 from core.models import MessageRole, ChatMessage, ReviewSession
@@ -61,7 +62,7 @@ class InputHandler:
     
     @staticmethod
     def handle_example_command():
-        """PRESERVED: Original example command logic for compatibility."""
+        """ENHANCED: Original example command logic with proper code formatting."""
         try:
             add_debug_message("📝 Starting example command")
             
@@ -99,10 +100,19 @@ class InputHandler:
             st.session_state.original_session_code = ""
             add_debug_message("📝 Reset code history")
             
-            # Add to conversation using the helper
+            # ENHANCED: Add to conversation with proper code formatting
             add_message_to_session(st.session_state.session, MessageRole.USER, "example")
-            add_message_to_session(st.session_state.session, MessageRole.ASSISTANT, 
-                "✅ **Example loaded!** Pandas optimization code is now in the editor. Click '📤 Submit Code' to begin learning!")
+            
+            # Format response with code block
+            response = f"""✅ **Example loaded!** Pandas optimization code is now in the editor.
+
+```python
+{example_code}
+```
+
+Click '📤 Submit Code' to begin learning!"""
+            
+            add_message_to_session(st.session_state.session, MessageRole.ASSISTANT, response)
             
             add_debug_message("📝 Example command completed successfully")
             
@@ -117,27 +127,34 @@ class InputHandler:
     
     @staticmethod
     def handle_test_command():
-        """Handle the 'test' command."""
+        """ENHANCED: Handle the 'test' command with proper output formatting."""
         try:
             if st.session_state.session.current_code.strip():
                 execution_result = CodeExecutor.execute_code_safely(st.session_state.session.current_code)
                     
                 if execution_result['success']:
-                    output_block = f"**Output:**\n```\n{execution_result['output']}\n```" if execution_result['output'] else ""
+                    # Format successful execution with code blocks
+                    output_block = f"""
+**Execution Output:**
+```text
+{execution_result['output']}
+```""" if execution_result['output'] else ""
+                    
                     response = f"""✅ **Code executed successfully!**
 
-                {execution_result['fake_data_info'] if execution_result['fake_data_info'] else ''}
+{execution_result['fake_data_info'] if execution_result['fake_data_info'] else ''}
+{output_block}
 
-                {output_block}
-
-                Great! Your code runs without errors. Now let's focus on optimization."""
+Great! Your code runs without errors. Now let's focus on optimization."""
+                
                 else:
+                    # Format execution error with code blocks
                     response = f"""❌ **Code execution failed:**
 
 **Error:** {execution_result['error']}
 
 **Traceback:**
-```
+```text
 {execution_result['traceback']}
 ```
 

@@ -1,5 +1,7 @@
+# core/prompts.py
 """
 System prompts and reusable Claude instructions for the code review assistant.
+ENHANCED: Added proper code block formatting for better chat display.
 """
 
 class PromptTemplates:
@@ -9,7 +11,9 @@ class PromptTemplates:
     Act as an expert code reviewer. Analyze this code and identify the SINGLE most important improvement area.
 
     Code:
+    ```python
     {code}
+    ```
 
     Consider these potential issues in order of importance:
     1. Performance bottlenecks (O(n²) algorithms, inefficient loops, etc.)
@@ -26,7 +30,9 @@ class PromptTemplates:
     Act as a Socratic coding tutor. The user is working on: {goal}
 
     IMPORTANT: The user's ACTUAL current code is:
+    ```python
     {code}
+    ```
 
     DO NOT reference any other code examples. ONLY refer to the exact code provided above.
 
@@ -52,12 +58,19 @@ class PromptTemplates:
     HINT_PROMPT = """
     Act as a Socratic coding tutor. Provide a Level {hint_level} hint for this code review.
 
-    Code:
+    Current code:
+    ```python
     {code}
+    ```
 
     User's goal: {goal}
 
     Hint level {hint_level}: {hint_description}
+
+    If providing code examples or snippets in your hint, format them with proper code blocks:
+    ```python
+    # Example code here
+    ```
 
     Keep the hint encouraging and educational. Don't solve it for them.
     """
@@ -66,10 +79,14 @@ class PromptTemplates:
     Act as a Socratic coding tutor. The user is working on: {goal}
 
     IMPORTANT: The user's ACTUAL current code is:
+    ```python
     {current_code}
+    ```
 
     Original code for reference:
+    ```python
     {original_code}
+    ```
 
     User's response: {user_response}
 
@@ -83,6 +100,10 @@ class PromptTemplates:
     3. Guide them toward the next step in their learning
     4. Keep responses concise and focused
     5. Don't give multiple questions or long explanations
+    6. If showing code examples, use proper formatting:
+       ```python
+       # Code example
+       ```
 
     If they seem stuck, mention they can ask for a hint.
     """
@@ -91,10 +112,14 @@ class PromptTemplates:
     Act as a Socratic coding tutor. The user is working on: {goal}
 
     Original code:
+    ```python
     {original_code}
+    ```
 
     Modified code:
+    ```python
     {modified_code}
+    ```
 
     Provide encouraging feedback on their changes and ask ONE specific, focused question to guide their learning.
 
@@ -104,6 +129,10 @@ class PromptTemplates:
     3. Focus on the most significant improvement opportunity
     4. Don't give multiple questions or lists
     5. Keep the response concise and focused
+    6. If showing code examples or comparisons, use proper formatting:
+       ```python
+       # Code example
+       ```
 
     If their solution is good, congratulate them and ask about the next optimization opportunity.
     If it needs work, guide them with a single targeted question.
@@ -113,15 +142,22 @@ class PromptTemplates:
     Act as a coding tutor. Provide an optimized solution for this code.
 
     Original code:
+    ```python
     {original_code}
+    ```
 
     User's goal: {goal}
 
     Provide:
-    1. The improved code
+    1. The improved code (properly formatted)
     2. Clear explanation of changes
     3. Why these changes address the goal
     4. Key learning concepts demonstrated
 
-    Format with clear code blocks and explanations.
+    Format the improved code with proper code blocks:
+    ```python
+    # Optimized solution here
+    ```
+
+    Then explain the improvements and learning concepts clearly.
     """

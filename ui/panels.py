@@ -1,7 +1,8 @@
+# ui/panels.py - FIXED VERSION with proper code block support
 import streamlit as st
 from datetime import datetime
 from config import ACE_AVAILABLE, CODE_EDITOR_HEIGHT, CODE_EDITOR_THEME, CODE_EDITOR_FONT_SIZE, CODE_EDITOR_TAB_SIZE, CHAT_CONTAINER_HEIGHT
-from .messages import MessageRenderer
+from .components import UIComponents  # Use the FIXED UIComponents
 from .handlers import InputHandler
 from core.models import ChatMessage, MessageRole
 from core.session_manager import SessionManager
@@ -46,13 +47,75 @@ def _analyze_example_for_optimization(code):
         print(f"DEBUG: Error analyzing example: {e}")
         return True
 
+def _reset_coaching_state():
+    """
+    CRITICAL FIX: Reset coaching state when loading new examples.
+    This prevents previous resolved_issues from carrying over.
+    """
+    try:
+        print("DEBUG: Resetting coaching state for new example")
+        
+        # Reset coaching state in session - use dynamic import to avoid circular imports
+        if hasattr(st.session_state, 'session') and st.session_state.session:
+            try:
+                from core.coaching_models import CoachingState
+                st.session_state.session.coaching_state = CoachingState()
+                print("DEBUG: Reset session coaching_state")
+            except ImportError:
+                print("DEBUG: CoachingState not available, skipping session reset")
+        
+        # Reset global coaching state if it exists
+        if hasattr(st.session_state, 'coaching_state'):
+            try:
+                from core.coaching_models import CoachingState
+                st.session_state.coaching_state = CoachingState()
+                print("DEBUG: Reset global coaching_state")
+            except ImportError:
+                print("DEBUG: CoachingState not available, clearing state manually")
+                st.session_state.coaching_state = None
+            
+        # Clear any cached coaching data
+        if hasattr(st.session_state, 'adaptive_coach'):
+            try:
+                # Reset the adaptive coach state if it exists
+                from core.adaptive_coach import AdaptiveCoach
+                from core.analyzer import CodeAnalyzer
+                code_analyzer = CodeAnalyzer()
+                st.session_state.adaptive_coach = AdaptiveCoach(code_analyzer)
+                print("DEBUG: Reset adaptive_coach")
+            except ImportError:
+                print("DEBUG: AdaptiveCoach/CodeAnalyzer not available, clearing manually")
+                st.session_state.adaptive_coach = None
+            except Exception as e:
+                print(f"DEBUG: Error creating new adaptive_coach: {e}")
+                st.session_state.adaptive_coach = None
+            
+        print("DEBUG: Coaching state reset completed")
+        
+    except Exception as e:
+        print(f"DEBUG: Error resetting coaching state: {e}")
+        # Graceful fallback - just clear the state variables
+        try:
+            if hasattr(st.session_state, 'session') and st.session_state.session:
+                st.session_state.session.coaching_state = None
+            if hasattr(st.session_state, 'coaching_state'):
+                st.session_state.coaching_state = None
+            if hasattr(st.session_state, 'adaptive_coach'):
+                st.session_state.adaptive_coach = None
+            print("DEBUG: Fallback coaching state clear completed")
+        except:
+            print("DEBUG: Even fallback clear failed")
+
 def _load_debug_example():
     """
     ENHANCED: Callback to inject an example with verified optimization opportunities.
-    Analyzes examples before presenting to ensure learning value.
+    FIXED: Now properly resets coaching state to prevent issue carryover.
     """
     try:
-        print("DEBUG: _load_debug_example called with pre-analysis")
+        print("DEBUG: _load_debug_example called with coaching state reset")
+        
+        # CRITICAL FIX: Reset coaching state first
+        _reset_coaching_state()
         
         # ENHANCED: Add first-time logic while preserving original behavior
         if 'first_example_loaded' not in st.session_state:
@@ -123,6 +186,14 @@ def _load_debug_example():
         st.session_state.current_code = code
         st.session_state.editor_key += 1
         
+        # ADDITIONAL FIX: Clear code history for fresh start
+        if hasattr(st.session_state, 'code_history'):
+            st.session_state.code_history = []
+            print("DEBUG: Cleared code history")
+        if hasattr(st.session_state, 'original_session_code'):
+            st.session_state.original_session_code = ""
+            print("DEBUG: Cleared original session code")
+        
         print(f"DEBUG: Updated session state - editor_key: {st.session_state.editor_key}")
         print(f"DEBUG: Current code set to: {st.session_state.current_code[:50]}...")
         
@@ -132,9 +203,9 @@ def _load_debug_example():
             
             # ENHANCED: Better message based on first-time vs random with analysis info
             if not st.session_state.first_example_loaded:
-                message = f"✅ **Verified example loaded!** Pandas optimization example with confirmed learning opportunities is now in the editor. Click '📤 Submit Code' to begin!"
+                message = f"✅ **Fresh example loaded!** Pandas optimization example with confirmed learning opportunities is now in the editor. Click '📤 Submit Code' to begin!"
             else:
-                message = f"🎲 **Analyzed example loaded!** New {category} example with optimization opportunities is ready. Click '📤 Submit Code' to analyze it!"
+                message = f"🎲 **New example loaded!** Fresh {category} example with optimization opportunities is ready. Click '📤 Submit Code' to analyze it!"
             
             add_message_to_session(
                 st.session_state.session, 
@@ -142,7 +213,7 @@ def _load_debug_example():
                 message
             )
         
-        print("DEBUG: _load_debug_example completed successfully with analysis")
+        print("DEBUG: _load_debug_example completed successfully with coaching state reset")
         
     except Exception as e:
         print(f"ERROR in _load_debug_example: {str(e)}")
@@ -164,7 +235,8 @@ def _load_debug_example():
             print("ERROR: Even fallback failed")
 
 class PanelRenderer:
-    """Handles rendering of main UI panels."""
+    """Handles rendering of main UI panels with FIXED message rendering."""
+    
     @staticmethod
     def render_code_input_panel():
         # PRESERVED ORIGINAL: Initialize editor state
@@ -244,7 +316,7 @@ class PanelRenderer:
     
     @staticmethod
     def render_chat_panel(assistant):
-        """PRESERVED ORIGINAL: Render the middle panel for chat interface."""
+        """PRESERVED ORIGINAL: Render the middle panel for chat interface with FIXED message rendering."""
         st.markdown("### 🤖 Claude Assistant")
         
         # Show current goal if session is active
@@ -261,9 +333,11 @@ class PanelRenderer:
                 # Reverse the conversation history to show newest first
                 reversed_messages = list(reversed(st.session_state.session.conversation_history))
                 for message in reversed_messages:
-                    MessageRenderer.render_chat_message(message)
+                    # FIXED: Use UIComponents with proper code block support
+                    UIComponents.render_chat_message(message)
             else:
-                MessageRenderer.render_welcome_message()
+                # FIXED: Use UIComponents welcome message
+                UIComponents.render_welcome_message()
         
         # User input area
         PanelRenderer.render_user_input_area(assistant)

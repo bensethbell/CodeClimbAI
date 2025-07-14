@@ -3,11 +3,11 @@ import re
 from core.models import MessageRole, ChatMessage
 
 class MessageRenderer:
-    """Handles rendering of chat messages with NO CODE BLOCKS - basic formatting only."""
+    """Handles rendering of chat messages with TRULY WORKING code blocks."""
     
     @staticmethod
     def render_chat_message(message):
-        """Render a single chat message with BASIC formatting - NO CODE BLOCKS."""
+        """Render a single chat message with proper code block support."""
         # Detect if this is an assistant message
         is_assistant = False
         
@@ -29,41 +29,89 @@ class MessageRenderer:
         else:
             content = str(message)
         
-        # Process content for basic formatting - NO CODE BLOCKS
-        processed_content = MessageRenderer.format_message_content(content)
+        # Check if content has code blocks
+        has_code_blocks = '```' in content
         
-        if is_assistant:
-            st.markdown(f"""
-            <div style="display: flex; justify-content: flex-start; margin-bottom: 8px;">
-                <div style="
-                    background-color: #e3f2fd; 
-                    padding: 10px; 
-                    border-radius: 10px; 
-                    max-width: 75%;
-                    word-wrap: break-word;
-                ">
-                    <strong>🤖 Claude:</strong><br>{processed_content}
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+        if has_code_blocks:
+            # For messages with code blocks, use PURE Streamlit rendering
+            MessageRenderer.render_message_with_code_blocks_pure_streamlit(content, is_assistant)
         else:
-            st.markdown(f"""
-            <div style="display: flex; justify-content: flex-end; margin-bottom: 8px;">
-                <div style="
-                    background-color: #e8f5e8; 
-                    padding: 10px; 
-                    border-radius: 10px; 
-                    max-width: 75%;
-                    word-wrap: break-word;
-                ">
-                    <strong>👤 You:</strong><br>{processed_content}
+            # For messages without code blocks, use HTML styling
+            processed_content = MessageRenderer.format_message_content_html(content)
+            
+            if is_assistant:
+                st.markdown(f"""
+                <div style="display: flex; justify-content: flex-start; margin-bottom: 8px;">
+                    <div style="
+                        background-color: #e3f2fd; 
+                        padding: 10px; 
+                        border-radius: 10px; 
+                        max-width: 75%;
+                        word-wrap: break-word;
+                    ">
+                        <strong>🤖 Claude:</strong><br>{processed_content}
+                    </div>
                 </div>
-            </div>
-            """, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown(f"""
+                <div style="display: flex; justify-content: flex-end; margin-bottom: 8px;">
+                    <div style="
+                        background-color: #e8f5e8; 
+                        padding: 10px; 
+                        border-radius: 10px; 
+                        max-width: 75%;
+                        word-wrap: break-word;
+                    ">
+                        <strong>👤 You:</strong><br>{processed_content}
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
     
     @staticmethod
-    def format_message_content(content: str) -> str:
-        """Format message content with NO CODE BLOCKS - basic formatting only."""
+    def render_message_with_code_blocks_pure_streamlit(content: str, is_assistant: bool):
+        """Render message with code blocks using PURE Streamlit with HTML preprocessing."""
+        
+        # PREPROCESS: Remove any HTML divs that might be in the content
+        import re
+        
+        # Remove HTML div tags but keep their content
+        content = re.sub(r'<div[^>]*class="question-title"[^>]*>', '**', content)
+        content = re.sub(r'<div[^>]*class="question-text"[^>]*>', '', content)
+        content = re.sub(r'<div[^>]*class="response-instructions"[^>]*>', '\n\n💬 ', content)
+        content = re.sub(r'</div>', '**' if 'question-title' in content else '', content)
+        
+        # Clean up any remaining HTML tags
+        content = re.sub(r'<[^>]+>', '', content)
+        
+        # Clean up extra whitespace and line breaks
+        content = re.sub(r'\n\s*\n\s*\n', '\n\n', content)
+        content = content.strip()
+        
+        # Create alignment using columns but render content with pure Streamlit
+        if is_assistant:
+            # Assistant message - left aligned
+            col1, col2 = st.columns([4, 1])
+            with col1:
+                # Use Streamlit's native styling - NO HTML WRAPPERS
+                with st.container():
+                    st.markdown("🤖 **Claude:**")
+                    # KEY FIX: Pure st.markdown() with NO HTML wrapper
+                    st.markdown(content)
+                    st.divider()  # Visual separator
+        else:
+            # User message - right aligned  
+            col1, col2 = st.columns([1, 4])
+            with col2:
+                with st.container():
+                    st.markdown("👤 **You:**")
+                    # Pure st.markdown() with NO HTML wrapper
+                    st.markdown(content)
+                    st.divider()  # Visual separator
+    
+    @staticmethod
+    def format_message_content_html(content: str) -> str:
+        """Format message content for HTML rendering (no code blocks)."""
         
         # Format **bold** text
         content = re.sub(r'\*\*([^*\n]+)\*\*', r'<strong>\1</strong>', content)
@@ -71,26 +119,10 @@ class MessageRenderer:
         # Format italic text
         content = re.sub(r'(?<!\*)\*([^*\n]+)\*(?!\*)', r'<em>\1</em>', content)
         
-        # REMOVE ALL CODE BLOCKS - convert to indented text instead
-        def format_code_as_text(match):
-            language = match.group(1) if match.group(1) else "code"
-            code_content = match.group(2).strip()
-            
-            # Format as indented text with language label
-            formatted_lines = []
-            formatted_lines.append(f"<strong>{language.upper()}:</strong>")
-            for line in code_content.split('\n'):
-                formatted_lines.append(f"&nbsp;&nbsp;&nbsp;&nbsp;{line}")
-            
-            return '<br>'.join(formatted_lines)
-        
-        # Replace code blocks with formatted text
-        content = re.sub(r'```(\w+)?\n?(.*?)```', format_code_as_text, content, flags=re.DOTALL)
-        
-        # Replace inline code with MINIMAL styling - NO BACKGROUND
+        # Replace inline code with simple styling
         content = re.sub(
             r'`([^`\n]+)`',
-            r'<code style="font-family: monospace; font-weight: bold;">\1</code>',
+            r'<code style="font-family: monospace; font-weight: bold; background-color: #f0f0f0; padding: 2px 4px; border-radius: 3px;">\1</code>',
             content
         )
         
@@ -108,28 +140,6 @@ class MessageRenderer:
             content
         )
         
-        # Format MCQ OPTIONS with BASIC styling
-        content = re.sub(
-            r'(\*\*Options:\*\*)',
-            r'<div style="font-weight: bold; margin: 8px 0 4px 0;">\1</div>',
-            content
-        )
-        
-        # Format individual MCQ options with BASIC styling
-        content = re.sub(
-            r'^([A-D])\) (.+)$',
-            r'<div style="margin: 4px 0; padding: 4px;"><strong>\1)</strong> \2</div>',
-            content,
-            flags=re.MULTILINE
-        )
-        
-        # Format response instructions
-        content = re.sub(
-            r'(\*\*💬 How to respond:\*\* .+)',
-            r'<div style="font-style: italic; color: #666; margin: 8px 0;">\1</div>',
-            content
-        )
-        
         # Convert line breaks to HTML
         content = content.replace('\n', '<br>')
         
@@ -137,9 +147,9 @@ class MessageRenderer:
     
     @staticmethod
     def render_welcome_message():
-        """Render the welcome message with basic styling."""
+        """Render the welcome message."""
         welcome_msg = ChatMessage(
             MessageRole.ASSISTANT,
-            "👋 Welcome! Let's learn through discovery.<br><br><strong>Quick start:</strong><br>• <strong>Type \"example\"</strong> below to get sample code<br>• <strong>Paste your own code</strong> on the left<br>• <strong>Click \"📤 Submit Code\"</strong> to begin learning<br><br>📖 <strong>Full instructions available on the right</strong> - click the dropdown to expand! Ready to start? 🚀"
+            "👋 Welcome! Let's learn through discovery.\n\n**Quick start:**\n• Click **'📚 Get Example'** to load sample code\n• **Paste your own code** on the left\n• **Click '📤 Submit Code'** to begin learning\n\nReady to start? 🚀"
         )
         MessageRenderer.render_chat_message(welcome_msg)

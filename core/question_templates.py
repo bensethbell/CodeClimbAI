@@ -1,6 +1,6 @@
 """
 Question templates for adaptive coaching system.
-FINAL FIX: Removed backticks from question text to prevent code block styling.
+FIXED VERSION: Uses proper ```python code blocks instead of plain text labels.
 """
 
 from typing import List, Dict, Any
@@ -12,7 +12,7 @@ class QuestionTemplates:
     
     @staticmethod
     def create_pandas_iterrows_mcq(user_code: str) -> LearningQuestion:
-        """Create MCQ about pandas iterrows performance - FIXED: No backticks."""
+        """Create MCQ about pandas iterrows performance - FIXED: Uses proper code blocks."""
         return LearningQuestion(
             question_id=str(uuid.uuid4()),
             question_type=QuestionType.MULTIPLE_CHOICE,
@@ -21,22 +21,22 @@ class QuestionTemplates:
             correct_answer="B",
             options=[
                 QuestionOption(
-                    text="A) iterrows() is the fastest way to process pandas DataFrames",
+                    text="iterrows() is the fastest way to process pandas DataFrames",
                     is_correct=False,
                     explanation="Actually, iterrows() is one of the slowest methods for DataFrame processing."
                 ),
                 QuestionOption(
-                    text="B) iterrows() is convenient but slow; vectorized operations are much faster",
+                    text="iterrows() is convenient but slow; vectorized operations are much faster",
                     is_correct=True,
                     explanation="Correct! iterrows() is convenient but very slow. Pandas vectorized operations are typically 10-100x faster."
                 ),
                 QuestionOption(
-                    text="C) iterrows() performance is similar to vectorized operations",
+                    text="iterrows() performance is similar to vectorized operations",
                     is_correct=False,
                     explanation="This is incorrect. iterrows() is significantly slower than vectorized operations."
                 ),
                 QuestionOption(
-                    text="D) iterrows() should always be used for data processing",
+                    text="iterrows() should always be used for data processing",
                     is_correct=False,
                     explanation="This is not recommended. Use vectorized operations when possible for better performance."
                 )
@@ -46,7 +46,7 @@ class QuestionTemplates:
     
     @staticmethod
     def create_vectorization_toy_example() -> LearningQuestion:
-        """Create a toy example showing vectorization benefits with different problem."""
+        """Create a toy example showing vectorization benefits - FIXED: Proper code blocks."""
         toy_code = '''# Problem: Calculate total scores for 10,000 students
 # Each student has exam_score and homework_score
 
@@ -72,43 +72,43 @@ total_scores = students_df["exam_score"] + students_df["homework_score"]'''
     
     @staticmethod
     def create_predict_output_tf(code_snippet: str) -> LearningQuestion:
-        """Create a True/False question about code output."""
+        """Create a True/False question about code output - FIXED: Proper code blocks."""
         return LearningQuestion(
             question_id=str(uuid.uuid4()),
             question_type=QuestionType.TRUE_FALSE,
             title="Code Prediction",
-            question_text=f"True or False: This code will successfully add a 'total' column to the DataFrame?\n\n**Python:**\n    {chr(10).join('    ' + line for line in code_snippet.split(chr(10)))}",
+            question_text=f"True or False: This code will successfully add a 'total' column to the DataFrame?\n\n```python\n{code_snippet}\n```",
             correct_answer="True",
             explanation="Yes, this code will work, but it's inefficient. The loop approach will successfully create the 'total' column."
         )
     
     @staticmethod
     def create_spot_the_bug_question(buggy_code: str, bug_description: str) -> LearningQuestion:
-        """Create a spot-the-bug question."""
+        """Create a spot-the-bug question - FIXED: Proper code blocks."""
         return LearningQuestion(
             question_id=str(uuid.uuid4()),
             question_type=QuestionType.SPOT_BUG,
             title="Spot the Bug",
-            question_text=f"What's the main issue with this code?\n\n**Python:**\n    {chr(10).join('    ' + line for line in buggy_code.split(chr(10)))}",
+            question_text=f"What's the main issue with this code?\n\n```python\n{buggy_code}\n```",
             correct_answer=bug_description,
             explanation=f"The main issue is: {bug_description}"
         )
     
     @staticmethod
     def create_what_if_scenario(base_code: str, scenario: str) -> LearningQuestion:
-        """Create a what-if scenario question."""
+        """Create a what-if scenario question - FIXED: Proper code blocks."""
         return LearningQuestion(
             question_id=str(uuid.uuid4()),
             question_type=QuestionType.WHAT_IF,
             title="What If Scenario",
-            question_text=f"What would happen if {scenario}?\n\nBase code:\n**Python:**\n    {chr(10).join('    ' + line for line in base_code.split(chr(10)))}",
+            question_text=f"What would happen if {scenario}?\n\nBase code:\n```python\n{base_code}\n```",
             correct_answer="depends on scenario",
             explanation="Consider how the change affects performance, correctness, and maintainability."
         )
     
     @staticmethod
     def create_string_concatenation_toy_example() -> LearningQuestion:
-        """Create a toy example for string concatenation performance."""
+        """Create a toy example for string concatenation performance - FIXED: Proper code blocks."""
         toy_code = '''# Building a large log file from 5000 entries
 
 # Method 1:
@@ -131,9 +131,10 @@ log_content = "".join(log_parts)'''
             toy_code=toy_code,
             explanation="Method 2 is much more efficient because it collects parts in a list then joins once, while Method 1 creates a new string object every iteration."
         )
+    
     @staticmethod
     def create_string_concatenation_mcq() -> LearningQuestion:
-        """Create MCQ about string concatenation performance."""
+        """Create MCQ about string concatenation performance - FIXED: Proper options."""
         return LearningQuestion(
             question_id=str(uuid.uuid4()),
             question_type=QuestionType.MULTIPLE_CHOICE,
@@ -142,22 +143,22 @@ log_content = "".join(log_parts)'''
             correct_answer="C",
             options=[
                 QuestionOption(
-                    text="A) Using += in a loop: result = result + piece",
+                    text="Using += in a loop: result = result + piece",
                     is_correct=False,
                     explanation="This creates a new string object each time, making it O(n²) complexity."
                 ),
                 QuestionOption(
-                    text="B) Using string formatting in a loop",
+                    text="Using string formatting in a loop",
                     is_correct=False,
                     explanation="Still inefficient for large numbers of concatenations."
                 ),
                 QuestionOption(
-                    text="C) Collecting in a list and using ''.join(list)",
+                    text="Collecting in a list and using ''.join(list)",
                     is_correct=True,
                     explanation="Correct! This approach is O(n) and much more efficient for large strings."
                 ),
                 QuestionOption(
-                    text="D) All methods have similar performance",
+                    text="All methods have similar performance",
                     is_correct=False,
                     explanation="Performance differences can be dramatic, especially with many concatenations."
                 )
@@ -166,7 +167,7 @@ log_content = "".join(log_parts)'''
     
     @staticmethod
     def create_nested_loops_toy_example() -> LearningQuestion:
-        """Create a toy example for nested loops optimization."""
+        """Create a toy example for nested loops optimization - FIXED: Proper code blocks."""
         toy_code = '''# Finding common customers between two stores (each has 1000+ customers)
 
 # Approach A:

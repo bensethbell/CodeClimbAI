@@ -1,6 +1,6 @@
 """
-Adaptive coaching system for the Learn-As-You-Go Code Review Assistant.
-ENHANCED VERSION: Includes interview-critical issue detection and advanced coaching logic.
+Adaptive coaching system core - enhanced with smart code snippet inclusion.
+ENHANCED VERSION: Automatically includes relevant code snippets for long code files.
 """
 
 import uuid
@@ -12,249 +12,29 @@ from .coaching_models import (
 from .question_templates import QuestionSelector, QuestionTemplates
 from .coaching_helpers import AnswerEvaluator, CodeAnalysisHelper, ResponseGenerator, NudgeGenerator
 from .analyzer import CodeAnalyzer
+from .code_snippet_analyzer import CodeSnippetAnalyzer  # NEW: Import snippet analyzer
 from templates.examples import ExampleGenerator, get_example_code
 
+# ENHANCED: Import session memory and learning continuity components
+try:
+    from .learning_continuity_system import (
+        SessionMemory, EnhancedQuestionSelector, 
+        EnhancedCoachingState, LearningProgress, QuestionMemory
+    )
+    ENHANCED_COACHING_AVAILABLE = True
+except ImportError:
+    ENHANCED_COACHING_AVAILABLE = False
 
-class InterviewCriticalAnalyzer:
-    """Analyzes code for interview-critical optimization opportunities."""
-    
-    @staticmethod
-    def get_interview_critical_issues(code_analysis: Dict[str, Any]) -> List[str]:
-        """
-        Identify issues that would be critical to fix in a coding interview.
-        Returns list of issues in order of interview importance.
-        FIXED: Added debug logging to track issue detection.
-        """
-        critical_issues = []
-        
-        print(f"DEBUG: Analyzing code_analysis: {code_analysis}")
-        
-        # TIER 1: Performance killers (absolutely critical in interviews)
-        if code_analysis.get('has_iterrows', False):
-            critical_issues.append('has_iterrows')
-            print("DEBUG: Found has_iterrows issue")
-        if code_analysis.get('has_nested_loops', False):
-            critical_issues.append('has_nested_loops')
-            print("DEBUG: Found has_nested_loops issue")
-        if code_analysis.get('has_string_concat', False):
-            critical_issues.append('has_string_concat')
-            print("DEBUG: Found has_string_concat issue")
-        if code_analysis.get('has_inefficient_data_structure', False):
-            critical_issues.append('has_inefficient_data_structure')
-            print("DEBUG: Found has_inefficient_data_structure issue")
-            
-        # TIER 2: Code quality issues (important for senior roles)
-        if code_analysis.get('has_manual_loop', False):
-            critical_issues.append('has_manual_loop')
-            print("DEBUG: Found has_manual_loop issue")
-        if code_analysis.get('has_inefficient_filtering', False):
-            critical_issues.append('has_inefficient_filtering')
-            print("DEBUG: Found has_inefficient_filtering issue")
-        if code_analysis.get('has_repetitive_code', False):
-            critical_issues.append('has_repetitive_code')
-            print("DEBUG: Found has_repetitive_code issue")
-            
-        # TIER 3: Best practices (nice to have)
-        if code_analysis.get('has_unclear_variables', False):
-            critical_issues.append('has_unclear_variables')
-            print("DEBUG: Found has_unclear_variables issue")
-        if code_analysis.get('has_missing_error_handling', False):
-            critical_issues.append('has_missing_error_handling')
-            print("DEBUG: Found has_missing_error_handling issue")
-        
-        print(f"DEBUG: Total critical issues found: {len(critical_issues)} - {critical_issues}")
-        
-        return critical_issues
-    
-    @staticmethod
-    def is_interview_critical(issue: str) -> bool:
-        """Check if an issue is critical for coding interviews."""
-        tier_1_critical = [
-            'has_iterrows', 'has_nested_loops', 'has_string_concat', 
-            'has_inefficient_data_structure'
-        ]
-        tier_2_important = [
-            'has_manual_loop', 'has_inefficient_filtering', 'has_repetitive_code'
-        ]
-        return issue in tier_1_critical or issue in tier_2_important
-    
-    @staticmethod
-    def get_issue_priority_explanation(issue: str) -> str:
-        """Get explanation of why an issue is interview-critical."""
-        explanations = {
-            'has_iterrows': "Using iterrows() in interviews shows lack of pandas optimization knowledge - could be a deal-breaker",
-            'has_nested_loops': "O(n²) complexity is a classic interview red flag - optimizing this shows algorithmic thinking", 
-            'has_string_concat': "String concatenation in loops shows poor performance awareness - easily optimizable",
-            'has_inefficient_data_structure': "Using wrong data structures shows fundamental CS knowledge gaps",
-            'has_manual_loop': "Manual loops instead of built-ins shows lack of Python proficiency",
-            'has_inefficient_filtering': "Not using list comprehensions shows missed optimization opportunities",
-            'has_repetitive_code': "Repetitive code violates DRY principle - important for maintainability",
-            'has_unclear_variables': "Poor variable naming reduces code readability",
-            'has_missing_error_handling': "Missing error handling shows lack of production-ready thinking"
-        }
-        return explanations.get(issue, "This optimization would improve code quality")
-
-
-class EnhancedResponseGenerator:
-    """Enhanced response generation with best solution offerings."""
-    
-    @staticmethod
-    def create_clean_correct_response(base_feedback: str, coaching_state) -> str:
-        """Create clean, intelligent response for correct answers with solution offering."""
-        # Extract core feedback without generic next steps
-        lines = base_feedback.split('\n')
-        clean_parts = []
-        
-        for line in lines:
-            # Keep the main feedback but skip redundant next steps
-            if any(skip_phrase in line for skip_phrase in [
-                'Next step:', 'Submit your improved', 'ask for a hint', 
-                'when ready', 'if you need guidance'
-            ]):
-                break
-            clean_parts.append(line)
-        
-        # Build clean response with intelligent next step
-        result = '\n'.join(clean_parts).strip()
-        
-        # Add single, intelligent next step based on user performance
-        success_rate = coaching_state.get_success_rate()
-        
-        if success_rate > 0.8 and coaching_state.total_questions_asked >= 2:
-            # High performer - challenge with best solution comparison
-            result += "\n\n🎯 **Advanced Challenge:** You're demonstrating strong optimization skills!"
-            result += "\n\n💡 **Options:** Ready to optimize your code, see the best solution approach, or try a new example?"
-        elif success_rate > 0.6:
-            # Good performer - practical application with guidance
-            result += "\n\n🔧 **Apply It:** Try modifying your code to use the optimization approach we discussed."
-            result += "\n\n💡 **Options:** Need guidance on implementation, want to see the optimal solution, or prefer a new challenge?"
-        else:
-            # Building confidence - supportive guidance with solution option
-            result += "\n\n✨ **Great progress!** You're understanding the concepts well."
-            result += "\n\n💡 **Options:** Try implementing the optimization, ask for specific guidance, or see how the experts would solve this!"
-        
-        return result
-    
-    @staticmethod
-    def create_clean_incorrect_response(base_feedback: str, coaching_state) -> str:
-        """Create clean, supportive response for incorrect answers with help options."""
-        # Extract core feedback without generic encouragement
-        lines = base_feedback.split('\n')
-        clean_parts = []
-        
-        for line in lines:
-            # Keep explanation but skip generic encouragement
-            if any(skip_phrase in line for skip_phrase in [
-                'Keep learning:', 'try another question', 'ask for a hint about'
-            ]):
-                break
-            clean_parts.append(line)
-        
-        result = '\n'.join(clean_parts).strip()
-        
-        # Add intelligent guidance based on struggle pattern
-        recent_interactions = coaching_state.interaction_history[-3:] if coaching_state.interaction_history else []
-        incorrect_count = sum(1 for i in recent_interactions if i.answer_status == AnswerStatus.INCORRECT)
-        
-        if incorrect_count >= 2:
-            # Multiple wrong answers - offer solution
-            result += "\n\n💡 **Let me help:** This concept can be tricky. Would you like me to show you the optimal solution and explain the approach step by step?"
-            result += "\n\n🎓 **Options:** See the best solution, try a different example, or get more specific guidance?"
-        else:
-            # Single wrong answer - gentle guidance with solution option
-            result += "\n\n🤔 **Think about it differently:** Sometimes seeing the optimal approach helps clarify the concept."
-            result += "\n\n💡 **Options:** Try again with a hint, see the expert solution, or explore this with a different example?"
-        
-        return result
-
-
-class EnhancedNudgeGenerator:
-    """Enhanced nudge generation with interview focus and solution offerings."""
-    
-    @staticmethod
-    def create_nudge(code: str, analysis: Dict[str, Any], coaching_state) -> Tuple[str, str]:
-        """Create a nudge with interview context and solution offerings."""
-        
-        # Determine if any issues are interview-critical
-        critical_issues = InterviewCriticalAnalyzer.get_interview_critical_issues(analysis)
-        has_critical_issues = len(critical_issues) > 0
-        
-        if analysis['has_iterrows']:
-            nudge = """🎯 **Interview-Critical Issue**: Using `df.iterrows()` is a major performance bottleneck that interviewers specifically look for.
-
-**Why this matters in interviews:** Shows you understand pandas optimization fundamentals.
-
-**Hint**: Pandas vectorized operations like `df['column1'] * df['column2']` are typically 10-100x faster.
-
-**Your options:**
-• **Fix this issue** - Essential for interview success
-• **See optimal solution** - Learn the best approach and why it works  
-• **Generate Example** - Try a different optimization challenge"""
-        
-        elif analysis['has_string_concat']:
-            nudge = """🎯 **Performance Issue**: Building strings with `+=` in loops is inefficient and interviewers notice this.
-
-**Interview impact:** Shows understanding of Python string immutability and performance.
-
-**Hint**: Collect strings in a list, then use `''.join(list)` for much better performance.
-
-**Your options:**
-• **Optimize the string building** - Show your performance awareness
-• **See best solution** - Compare with the expert approach
-• **Generate Example** - Practice with a different optimization"""
-        
-        elif analysis['has_nested_loops']:
-            nudge = """🎯 **Algorithm Alert**: Nested loops often create O(n²) complexity - a classic interview concern.
-
-**Why interviewers care:** Demonstrates algorithmic thinking and optimization skills.
-
-**Hint**: Consider using sets, dictionaries, or other data structures to reduce complexity.
-
-**Your options:**
-• **Optimize the algorithm** - Critical for interview success
-• **See optimal approach** - Learn advanced optimization techniques
-• **Generate Example** - Try another algorithmic challenge"""
-        
-        elif analysis['has_manual_loop']:
-            nudge = """🎯 **Optimization Opportunity**: Manual loops can often be replaced with more Pythonic approaches.
-
-**Interview relevance:** Shows proficiency with Python's built-in functions and idioms.
-
-**Hint**: Consider list comprehensions, `sum()`, `filter()`, or other built-ins.
-
-**Your options:**
-• **Modernize the code** - Use more Pythonic approaches
-• **See expert solution** - Learn advanced Python techniques
-• **Generate Example** - Practice with different optimization patterns"""
-        
-        elif has_critical_issues:
-            issue = critical_issues[0]
-            explanation = InterviewCriticalAnalyzer.get_issue_priority_explanation(issue)
-            
-            nudge = f"""🎯 **Interview-Important Issue**: {explanation}
-
-**Your options:**
-• **Address this issue** - Improve your interview readiness
-• **See optimal solution** - Learn the best practices approach
-• **Generate Example** - Try a different optimization challenge"""
-        
-        else:
-            nudge = """🎯 **Good foundation!** Your code is functional and shows solid programming skills.
-
-**Level up your code:** Even good code can often be optimized further for interviews.
-
-**Your options:**
-• **Explore optimizations** - Polish your code to interview standards
-• **See expert solution** - Compare with best practices approach  
-• **Generate Example** - Challenge yourself with a new optimization problem"""
-        
-        return nudge, "nudge"
+# Import enhanced response generators
+from .user_intent_detector import UserIntentDetector
+from .interview_analyzer import InterviewCriticalAnalyzer
+from .enhanced_response_generators import EnhancedResponseGenerator, EnhancedNudgeGenerator
 
 
 class AdaptiveCoach:
     """
-    Main coaching system that decides between asking questions or giving nudges.
-    Tracks user progress and adapts teaching strategy accordingly.
+    Main coaching system with enhanced confusion detection, learning continuity, and smart code snippets.
+    ENHANCED: Automatically includes relevant code snippets for long code files.
     """
     
     def __init__(self, code_analyzer: CodeAnalyzer):
@@ -293,9 +73,9 @@ class AdaptiveCoach:
     
     def enhanced_process_code_submission(self, code: str, coaching_state: CoachingState) -> Tuple[str, CoachingMode]:
         """
-        ENHANCED: Process code submission with interview-critical issue detection.
+        ENHANCED: Process code submission with interview-critical issue detection and smart code snippets.
         """
-        print("Processing code submission with interview-critical analysis...")
+        print("Processing code submission with interview-critical analysis and snippet enhancement...")
         code_analysis = CodeAnalysisHelper.analyze_code_for_coaching(code)
         print("DEBUG: Enhanced code_analysis =", code_analysis)
 
@@ -336,7 +116,7 @@ class AdaptiveCoach:
             print("DEBUG: Main issue resolved, checking for next critical issues...")
             coaching_state.resolved_issues.add(main_issue)
             
-            # ENHANCED: Look for next interview-critical issue
+            # Look for next interview-critical issue
             remaining_critical_issues = [
                 issue for issue in InterviewCriticalAnalyzer.get_interview_critical_issues(code_analysis)
                 if issue not in coaching_state.resolved_issues and issue_flags.get(issue, False)
@@ -346,10 +126,10 @@ class AdaptiveCoach:
                 next_critical_issue = remaining_critical_issues[0]
                 coaching_state.main_issue = next_critical_issue
                 
-                # ENHANCED: Explain why this next issue is important
+                # Explain why this next issue is important
                 priority_explanation = InterviewCriticalAnalyzer.get_issue_priority_explanation(next_critical_issue)
                 
-                return f"""🎉 **Great progress!** You've addressed the {main_issue.replace('_', ' ')} issue.
+                base_response = f"""🎉 **Great progress!** You've addressed the {main_issue.replace('_', ' ')} issue.
 
 **🚨 Interview Alert:** I notice another critical optimization opportunity that would be **essential to fix in a coding interview**:
 
@@ -360,7 +140,14 @@ class AdaptiveCoach:
 • **Generate new example** - Click the 'Generate Example' button for different practice
 • **See best solution** - I can show you the optimal approach and explain why it's better
 
-What would you like to focus on?""", CoachingMode.NUDGE
+What would you like to focus on?"""
+                
+                # ENHANCED: Add code snippet for long code
+                enhanced_response = CodeSnippetAnalyzer.enhance_question_with_snippet(
+                    base_response, code, code_analysis, next_critical_issue
+                )
+                
+                return enhanced_response, CoachingMode.NUDGE
             
             else:
                 # Check for any remaining non-critical issues
@@ -370,7 +157,7 @@ What would you like to focus on?""", CoachingMode.NUDGE
                     print("DEBUG: Found remaining non-critical issues:", remaining_issues)
                     coaching_state.main_issue = remaining_issues[0]
                     
-                    return f"""🎉 **Excellent work!** You've addressed all the critical interview-level issues.
+                    base_response = f"""🎉 **Excellent work!** You've addressed all the critical interview-level issues.
 
 There are still some minor optimizations possible, but your code is now **interview-ready** for the main performance concerns.
 
@@ -379,7 +166,14 @@ There are still some minor optimizations possible, but your code is now **interv
 • **See best solution** - Compare your approach with the optimal solution
 • **New challenge** - Click 'Generate Example' for a different optimization problem
 
-How would you like to proceed?""", CoachingMode.NUDGE
+How would you like to proceed?"""
+                    
+                    # ENHANCED: Add code snippet for long code
+                    enhanced_response = CodeSnippetAnalyzer.enhance_question_with_snippet(
+                        base_response, code, code_analysis, remaining_issues[0]
+                    )
+                    
+                    return enhanced_response, CoachingMode.NUDGE
                 
                 else:
                     print("DEBUG: No remaining issues, code is fully optimized")
@@ -403,7 +197,7 @@ Ready for the next challenge?""", CoachingMode.NUDGE
         print("Should ask question?", should_question)
         
         if should_question:
-            return self._create_learning_question(code, coaching_state, code_analysis)
+            return self._create_enhanced_learning_question(code, coaching_state, code_analysis)
         else:
             return self._create_enhanced_nudge(code, code_analysis, coaching_state)
 
@@ -411,41 +205,136 @@ Ready for the next challenge?""", CoachingMode.NUDGE
         """Use enhanced processing by default."""
         return self.enhanced_process_code_submission(code, coaching_state)
 
-    def handle_user_answer(self, user_answer: str, coaching_state: CoachingState) -> str:
-        """Process user's answer with intelligent decision-making."""
+    def handle_user_answer(self, user_answer: str, coaching_state) -> str:
+        """Process user's answer with session memory updates."""
         user_answer_lower = user_answer.strip().lower()
         
-        # Handle explicit requests first
-        if user_answer_lower in ['hint', 'give me a hint', 'need a hint']:
-            return self._provide_contextual_hint(coaching_state)
+        # Ensure coaching_state has session memory
+        if not hasattr(coaching_state, 'session_memory'):
+            coaching_state.session_memory = SessionMemory()
         
+        # Detect user intent first
+        user_intent = UserIntentDetector.detect_user_intent(user_answer)
+        
+        if user_intent == 'wants_answer':
+            # User explicitly wants the correct answer revealed
+            if coaching_state.is_waiting_for_answer():
+                response = UserIntentDetector.create_answer_revelation(
+                    coaching_state.current_interaction.question,
+                    coaching_state
+                )
+                # Complete the interaction as if they got it right (they asked for help)
+                coaching_state.complete_current_interaction(user_answer, AnswerStatus.CORRECT)
+                return response
+            else:
+                return "I don't have a specific question to answer right now. Feel free to ask about the code or request a hint!"
+        
+        elif user_intent == 'wants_clarification':
+            # User wants clarification about the question format/meaning
+            return UserIntentDetector.create_clarification_response(
+                coaching_state.current_interaction.question if coaching_state.current_interaction else None,
+                coaching_state
+            )
+        
+        elif user_intent == 'wants_hint':
+            # User wants a hint
+            return self._provide_contextual_hint_with_memory(coaching_state)
+        
+        # Handle explicit 'explore' requests
         if user_answer_lower in ['explore', 'explore further', 'tell me more']:
-            return self._provide_exploration_guidance(coaching_state)
+            return self._provide_exploration_guidance_with_memory(coaching_state)
         
+        # Handle 'example' command
         if user_answer_lower == 'example':
             print("DEBUG: 'example' command received.")
             example_code, category = self.load_example_code()
             print("DEBUG: Example loaded:", example_code, category)
-            # NO CODE BLOCKS - format as plain text
             return f"Example loaded! Here's a {category} example:\n\n**Python:**\n    {chr(10).join('    ' + line for line in example_code.split(chr(10)))}"
         
-        # If waiting for answer to a specific question
+        # If waiting for answer to a specific question (normal flow)
         if coaching_state.is_waiting_for_answer():
             current_question = coaching_state.current_interaction.question
             is_correct, base_feedback = AnswerEvaluator.evaluate_answer(user_answer, current_question)
             
-            # Complete the interaction
+            # Complete the interaction (this will update session memory)
             status = AnswerStatus.CORRECT if is_correct else AnswerStatus.INCORRECT
             coaching_state.complete_current_interaction(user_answer, status)
             
-            # Create clean, intelligent response using enhanced generator
+            # Add learning progress info to response
+            base_response = ""
             if is_correct:
-                return EnhancedResponseGenerator.create_clean_correct_response(base_feedback, coaching_state)
+                base_response = EnhancedResponseGenerator.create_clean_correct_response(base_feedback, coaching_state)
             else:
-                return EnhancedResponseGenerator.create_clean_incorrect_response(base_feedback, coaching_state)
+                base_response = EnhancedResponseGenerator.create_clean_incorrect_response(base_feedback, coaching_state)
+            
+            # Add session learning context if appropriate
+            if coaching_state.total_questions_asked > 1:  # Only after first question
+                session_summary = coaching_state.session_memory.get_learning_summary()
+                if session_summary and session_summary != "This is your first question in this session.":
+                    base_response += f"\n\n📈 **Your Learning Progress:**\n{session_summary}"
+            
+            return base_response
         
         # General conversation
         return self._handle_general_conversation(user_answer, coaching_state)
+
+    def _provide_contextual_hint_with_memory(self, coaching_state) -> str:
+        """Provide hint considering session learning history."""
+        
+        # Get basic hint
+        basic_hint = self._provide_contextual_hint(coaching_state)
+        
+        # Add learning context if we have session memory
+        if hasattr(coaching_state, 'session_memory') and coaching_state.session_memory.question_history:
+            current_concept = None
+            if coaching_state.current_interaction and coaching_state.current_interaction.question:
+                # Try to determine current concept
+                current_concept = self._determine_question_concept(coaching_state.current_interaction.question)
+            
+            if current_concept:
+                concept_status = coaching_state.session_memory.learning_progress.get_concept_status(current_concept)
+                
+                if concept_status == 'mastered':
+                    basic_hint += f"\n\n💪 **You've mastered {current_concept.replace('_', ' ')} before!** Apply that same insight here."
+                elif concept_status == 'learning':
+                    basic_hint += f"\n\n📚 **Building on your {current_concept.replace('_', ' ')} knowledge...** Think about patterns you've seen."
+                elif concept_status == 'struggling':
+                    basic_hint += f"\n\n🔄 **Let's reinforce {current_concept.replace('_', ' ')}** - this is a key concept worth mastering."
+        
+        return basic_hint
+
+    def _provide_exploration_guidance_with_memory(self, coaching_state) -> str:
+        """Provide exploration considering session learning history."""
+        
+        # Get basic exploration guidance
+        basic_guidance = self._provide_exploration_guidance(coaching_state)
+        
+        # Add connections to previous learning
+        if hasattr(coaching_state, 'session_memory') and coaching_state.session_memory.session_concepts:
+            concepts_learned = list(coaching_state.session_memory.session_concepts)
+            if len(concepts_learned) > 1:
+                concept_names = [c.replace('_', ' ').title() for c in concepts_learned[-3:]]  # Last 3 concepts
+                basic_guidance += f"\n\n🔗 **Connecting concepts:** You've been exploring {', '.join(concept_names)}. How do these optimization patterns relate to each other?"
+        
+        return basic_guidance
+
+    def _determine_question_concept(self, question) -> Optional[str]:
+        """Determine the main concept of a question."""
+        if not question or not hasattr(question, 'question_text'):
+            return None
+        
+        question_text = question.question_text.lower()
+        
+        if 'iterrows' in question_text or 'pandas' in question_text:
+            return 'pandas_iterrows'
+        elif 'string' in question_text or 'concatenat' in question_text:
+            return 'string_concatenation'
+        elif 'nested' in question_text or 'loop' in question_text:
+            return 'nested_loops'
+        elif 'index' in question_text:
+            return 'manual_indexing'
+        else:
+            return 'general_optimization'
     
     def _provide_contextual_hint(self, coaching_state: CoachingState) -> str:
         """Provide hint based on current context and user progress."""
@@ -472,20 +361,36 @@ Ready for the next challenge?""", CoachingMode.NUDGE
         """Handle general conversation when not waiting for specific answer."""
         return "I'm here to help with your code! Please submit some code to get started, or ask a specific question about optimization."
     
-    def _create_learning_question(self, code: str, coaching_state: CoachingState, 
-                                analysis: Dict[str, Any]) -> Tuple[str, CoachingMode]:
-        """Create an appropriate learning question using LAZY IMPORT."""
-        # LAZY IMPORT: Import QuestionFormatter only when needed to break circular dependency
+    def _create_enhanced_learning_question(self, code: str, coaching_state, analysis: Dict[str, Any]) -> Tuple[str, CoachingMode]:
+        """
+        ENHANCED: Create learning question with session memory, continuity, and smart code snippets.
+        """
+        
+        # Lazy import QuestionFormatter only when needed
         from .question_formatter import QuestionFormatter
         
-        # Select the best question for this code
-        question = self.question_selector.select_question_for_code(code, coaching_state)
+        # Ensure coaching_state has session memory
+        if not hasattr(coaching_state, 'session_memory'):
+            coaching_state.session_memory = SessionMemory()
         
-        # Create coaching interaction using the external formatter
+        # Select question considering session history
+        question = EnhancedQuestionSelector.select_question_with_memory(
+            code, coaching_state, coaching_state.session_memory
+        )
+        
+        # Format the question
+        formatted_question = QuestionFormatter.format_question_message(question)
+        
+        # ENHANCED: Add code snippet for long code
+        enhanced_question = CodeSnippetAnalyzer.enhance_question_with_snippet(
+            formatted_question, code, analysis, coaching_state.main_issue
+        )
+        
+        # Create coaching interaction
         interaction = CoachingInteraction(
             interaction_id=str(uuid.uuid4()),
             mode=CoachingMode.QUESTION,
-            content=QuestionFormatter.format_question_message(question),
+            content=enhanced_question,
             question=question
         )
         
@@ -494,13 +399,21 @@ Ready for the next challenge?""", CoachingMode.NUDGE
         coaching_state.total_questions_asked += 1
         
         return interaction.content, CoachingMode.QUESTION
-    
+        
     def _create_nudge(self, code: str, analysis: Dict[str, Any], coaching_state: CoachingState) -> Tuple[str, CoachingMode]:
         """Create a direct nudge to help the user improve their code."""
         nudge_text, mode = NudgeGenerator.create_nudge(code, analysis, coaching_state)
         return nudge_text, CoachingMode.NUDGE
     
     def _create_enhanced_nudge(self, code: str, analysis: Dict[str, Any], coaching_state: CoachingState) -> Tuple[str, CoachingMode]:
-        """Create an enhanced nudge with interview focus."""
+        """
+        ENHANCED: Create an enhanced nudge with interview focus and smart code snippets.
+        """
         nudge_text, mode = EnhancedNudgeGenerator.create_nudge(code, analysis, coaching_state)
-        return nudge_text, CoachingMode.NUDGE
+        
+        # ENHANCED: Add code snippet for long code
+        enhanced_nudge = CodeSnippetAnalyzer.enhance_question_with_snippet(
+            nudge_text, code, analysis, coaching_state.main_issue
+        )
+        
+        return enhanced_nudge, CoachingMode.NUDGE
