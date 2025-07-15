@@ -12,10 +12,10 @@ class SidebarManager:
     def render_sidebar_instructions():
         """Render comprehensive instructions in the sidebar."""
         with st.sidebar:
-            st.markdown("# 📖 Instructions & Help")
+            st.markdown("# 📚 CodeClimbAI Guide")
             
             SidebarManager._render_quick_start_section()
-            SidebarManager._render_how_claude_helps_section()
+            SidebarManager._render_how_cody_helps_section()
             SidebarManager._render_during_sessions_section()
             SidebarManager._render_tips_and_commands_section()
             SidebarManager._render_debug_info_section()
@@ -27,22 +27,24 @@ class SidebarManager:
         """Render the Quick Start section."""
         st.markdown("## 🚀 Quick Start")
         st.markdown("""
-        1. **Click "Generate Example"** in the left panel to load sample code
-        2. **Click "📤 Submit Code"** to begin learning
-        3. **Answer the questions** Claude asks about your code
-        4. **Make improvements** and resubmit to continue learning
+        1. **Load Example** - Click "Get Example" for sample code
+        2. **Submit Code** - Click "Submit Code" to begin
+        3. **Answer Questions** - Cody guides you through discovery
+        4. **Apply Learning** - Modify code and resubmit to see progress
         """)
     
     @staticmethod
-    def _render_how_claude_helps_section():
-        """Render the How Claude Helps section."""
-        st.markdown("## 🤖 How Claude Helps")
+    def _render_how_cody_helps_section():
+        """Render the How Cody Helps section."""
+        st.markdown("## 🤖 How Cody Helps")
         st.markdown("""
-        **Socratic Learning:** Claude asks questions to guide you to discoveries rather than just giving answers.
+        **Socratic Learning:** Cody asks questions to guide you to discoveries rather than just giving answers.
         
         **Adaptive Coaching:** Questions adjust based on your progress and understanding level.
         
         **Real Code Testing:** Your code is executed with generated test data to ensure it works.
+        
+        **Interview Focus:** Prioritizes performance issues that matter in coding interviews.
         """)
     
     @staticmethod
@@ -50,13 +52,13 @@ class SidebarManager:
         """Render the During Learning Sessions section."""
         st.markdown("## 🎯 During Learning Sessions")
         st.markdown("""
-        **Answer Questions:** Engage with Claude's questions about optimization opportunities
+        **Answer Thoughtfully:** Take time to think through questions - discovery learning works best when you engage deeply.
         
-        **Ask for Hints:** Type 'hint' or click hint buttons when you're stuck
+        **Ask for Hints:** If stuck, use the hint system to get progressive guidance without revealing the full answer.
         
-        **Submit Improvements:** Make changes to your code and resubmit to see how you're progressing
+        **Experiment Freely:** Try different approaches and submit variations to see how they perform.
         
-        **Explore Deeper:** Ask follow-up questions about concepts you're learning
+        **Focus on Concepts:** Look for underlying patterns and principles, not just syntax fixes.
         """)
     
     @staticmethod
@@ -73,6 +75,11 @@ class SidebarManager:
         - Try to answer questions before asking for hints
         - Experiment with small changes to see their impact
         - Don't worry about getting answers wrong - that's how you learn!
+        
+        **Best Practices:**
+        - Read questions carefully before answering
+        - Think about performance implications
+        - Consider maintainability and readability
         """)
     
     @staticmethod
@@ -89,9 +96,9 @@ class SidebarManager:
         """Render the Learning Log section if available."""
         if hasattr(st.session_state, 'learning_log') and st.session_state.learning_log:
             with st.expander("📚 Learning Log", expanded=False):
-                for i, entry in enumerate(st.session_state.learning_log, 1):
+                for entry in st.session_state.learning_log[-3:]:  # Last 3 entries
                     timestamp = datetime.fromisoformat(entry["timestamp"]).strftime("%m/%d %H:%M")
-                    st.write(f"**{i}.** {entry['goal']} ({timestamp})")
+                    st.text(f"{timestamp}: {entry['goal']} (hints: {entry['hints_used']})")
     
     @staticmethod
     def _render_code_history_section():

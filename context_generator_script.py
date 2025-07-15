@@ -3,6 +3,7 @@
 CodeClimbAI Context Generator Script - OPTIMIZED VERSION
 Generates a comprehensive but non-redundant context document for Claude chat sessions.
 FIXED: Eliminates duplicate file descriptions, redundant project instructions, and excessive content.
+NEW: Added line count information for each code file.
 
 Usage: python generate_context.py [output_file]
 """
@@ -46,10 +47,18 @@ class CodeClimbAIContextGenerator:
             'coaching_models.py', 'models.py', 'handlers.py'
         }
     
-    def discover_project_structure(self) -> Dict[str, List[Tuple[str, str, bool]]]:
+    def get_file_line_count(self, file_path: Path) -> int:
+        """Get the line count for a file."""
+        try:
+            content = self.read_file_safely(file_path)
+            return len(content.splitlines())
+        except Exception:
+            return 0
+    
+    def discover_project_structure(self) -> Dict[str, List[Tuple[str, str, bool, int]]]:
         """
-        OPTIMIZED: Discover project structure with essential file flagging.
-        Returns: Dict mapping directory names to lists of (file_path, description, is_essential) tuples
+        OPTIMIZED: Discover project structure with essential file flagging and line counts.
+        Returns: Dict mapping directory names to lists of (file_path, description, is_essential, line_count) tuples
         """
         structure = {}
         
@@ -82,7 +91,8 @@ class CodeClimbAIContextGenerator:
                 if file_ext in self.code_extensions:
                     description = self.get_file_description(rel_file_path, file)
                     is_essential = file in self.essential_files
-                    file_list.append((rel_file_path, description, is_essential))
+                    line_count = self.get_file_line_count(Path(file_path))
+                    file_list.append((rel_file_path, description, is_essential, line_count))
             
             if file_list:
                 structure[rel_root] = file_list
@@ -286,8 +296,8 @@ This document contains the complete codebase, project structure, recent chat his
 """
         self.output_lines.append(header)
     
-    def generate_optimized_project_structure(self, structure: Dict[str, List[Tuple[str, str, bool]]]):
-        """OPTIMIZED: Generate project structure WITHOUT redundant content."""
+    def generate_optimized_project_structure(self, structure: Dict[str, List[Tuple[str, str, bool, int]]]):
+        """OPTIMIZED: Generate project structure WITH line counts and WITHOUT redundant content."""
         self.add_section("Project Structure")
         
         # Create ASCII tree structure
@@ -300,6 +310,7 @@ This document contains the complete codebase, project structure, recent chat his
         # Track file counts and essentials
         total_files = 0
         essential_files = 0
+        total_lines = 0
         
         for dir_name in sorted_dirs:
             files = structure[dir_name]
@@ -307,41 +318,45 @@ This document contains the complete codebase, project structure, recent chat his
             
             if dir_name == 'root':
                 # Root level files
-                for file_path, description, is_essential in files:
+                for file_path, description, is_essential, line_count in files:
+                    total_lines += line_count
                     if is_essential:
                         essential_files += 1
-                        tree_lines.append(f"├── {file_path:<30} # {description} [ESSENTIAL]")
+                        tree_lines.append(f"├── {file_path:<25} ({line_count:>3} lines) # {description} [ESSENTIAL]")
                     else:
-                        tree_lines.append(f"├── {file_path:<30} # {description}")
+                        tree_lines.append(f"├── {file_path:<25} ({line_count:>3} lines) # {description}")
             else:
                 # Directory
                 tree_lines.append(f"├── {dir_name}/")
-                for i, (file_path, description, is_essential) in enumerate(files):
+                for i, (file_path, description, is_essential, line_count) in enumerate(files):
                     filename = os.path.basename(file_path)
                     prefix = "└──" if i == len(files) - 1 else "├──"
+                    total_lines += line_count
                     if is_essential:
                         essential_files += 1
-                        tree_lines.append(f"│   {prefix} {filename:<25} # {description} [ESSENTIAL]")
+                        tree_lines.append(f"│   {prefix} {filename:<20} ({line_count:>3} lines) # {description} [ESSENTIAL]")
                     else:
-                        tree_lines.append(f"│   {prefix} {filename:<25} # {description}")
+                        tree_lines.append(f"│   {prefix} {filename:<20} ({line_count:>3} lines) # {description}")
         
         tree_lines.append("```")
         self.output_lines.extend(tree_lines)
         
-        # Add optimized file count summary
+        # Add optimized file count summary with line counts
         self.add_subsection("File Summary")
         summary = f"""**Total Files:** {total_files} discovered and included
+**Total Lines of Code:** {total_lines:,} lines across all files
 **Essential Files:** {essential_files} (full content included)
 **Other Files:** {total_files - essential_files} (structure/preview included)
 
 **Note:** Essential files are core system components that receive full content inclusion. 
 Other files show structure and key functions to optimize context document size.
+Line counts help assess file complexity and identify larger components.
 
 """
         self.output_lines.append(summary)
     
-    def generate_optimized_code_section(self, structure: Dict[str, List[Tuple[str, str, bool]]]):
-        """OPTIMIZED: Generate code section with smart content inclusion."""
+    def generate_optimized_code_section(self, structure: Dict[str, List[Tuple[str, str, bool, int]]]):
+        """OPTIMIZED: Generate code section with smart content inclusion and line counts."""
         self.add_section("Complete Codebase")
         
         # Sort directories for consistent output
@@ -352,12 +367,13 @@ Other files show structure and key functions to optimize context document size.
             self.add_subsection(display_name)
             
             files = structure[dir_name]
-            for file_path, description, is_essential in files:
+            for file_path, description, is_essential, line_count in files:
                 full_path = self.project_root / file_path
                 
-                # Add file header
+                # Add file header with line count
                 self.output_lines.append(f"### {file_path}\n")
                 self.output_lines.append(f"**Description:** {description}\n")
+                self.output_lines.append(f"**Lines:** {line_count:,} | **Type:** {'Essential (Full Content)' if is_essential else 'Preview Only'}\n")
                 
                 # Read and add file content (full or preview)
                 if full_path.exists():
@@ -414,7 +430,8 @@ Other files show structure and key functions to optimize context document size.
         self.add_subsection("Recent Chat Sessions (Full Content)")
         
         for i, log_file in enumerate(recent_logs, 1):
-            self.output_lines.append(f"### Chat Session {i}: {log_file.name}\n")
+            line_count = self.get_file_line_count(log_file)
+            self.output_lines.append(f"### Chat Session {i}: {log_file.name} ({line_count} lines)\n")
             content = self.read_file_safely(log_file)
             self.add_code_block(content, "markdown")
         
@@ -423,7 +440,8 @@ Other files show structure and key functions to optimize context document size.
             self.add_subsection("Previous Chat Sessions (Summaries)")
             
             for log_file in older_logs:
-                self.output_lines.append(f"**{log_file.name}:**\n")
+                line_count = self.get_file_line_count(log_file)
+                self.output_lines.append(f"**{log_file.name}** ({line_count} lines):\n")
                 
                 # Extract summary from file
                 content = self.read_file_safely(log_file)

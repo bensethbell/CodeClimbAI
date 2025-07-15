@@ -317,7 +317,7 @@ class PanelRenderer:
     @staticmethod
     def render_chat_panel(assistant):
         """PRESERVED ORIGINAL: Render the middle panel for chat interface with FIXED message rendering."""
-        st.markdown("### 🤖 Claude Assistant")
+        st.markdown("### 🤖 Cody - Your AI Code Coach")
         
         # Show current goal if session is active
         if st.session_state.session and st.session_state.session.is_active:

@@ -6,7 +6,6 @@ from core.coaching_models import CoachingState
 from templates.examples import get_example_code
 from utils.execution import CodeExecutor
 from config import ACE_AVAILABLE, CODE_EDITOR_HEIGHT, CODE_EDITOR_THEME, CODE_EDITOR_FONT_SIZE, CODE_EDITOR_TAB_SIZE, CHAT_CONTAINER_HEIGHT, MAX_DEBUG_MESSAGES, MAX_CODE_PREVIEW_LENGTH
-
 try:
     from streamlit_ace import st_ace
 except ImportError:
@@ -19,18 +18,23 @@ class UIComponents:
     def render_chat_message(message):
         """Render a single chat message with FIXED MCQ formatting when code blocks present."""
         is_assistant = False
-        
-        # Determine if this is an assistant message
         if hasattr(message, 'role') and message.role == MessageRole.ASSISTANT:
             is_assistant = True
         elif hasattr(message, 'role') and str(message.role).lower() == 'assistant':
             is_assistant = True
         elif isinstance(message, dict) and message.get('role') == 'assistant':
             is_assistant = True
-        elif str(message).startswith('🤖') or 'Claude:' in str(message):
-            is_assistant = True
+        # FIXED: Add explicit user role detection instead of defaulting to assistant
+        elif hasattr(message, 'role') and message.role == MessageRole.USER:
+            is_assistant = False
+        elif hasattr(message, 'role') and str(message.role).lower() == 'user':
+            is_assistant = False
+        elif isinstance(message, dict) and message.get('role') == 'user':
+            is_assistant = False
+        else:
+            # FIXED: Default to user message if role is ambiguous (safer fallback)
+            is_assistant = False
         
-        # Extract content
         content = ""
         if hasattr(message, 'content'):
             content = message.content
@@ -39,18 +43,16 @@ class UIComponents:
         else:
             content = str(message)
         
-        # FIXED: Check for code blocks AND handle MCQ formatting properly
         has_code_blocks = '```' in content
         
         if has_code_blocks:
-            # FIXED: Use enhanced method that preserves MCQ formatting
+            # Use pure Streamlit rendering for code blocks
             UIComponents.render_message_with_code_blocks_and_mcq_support(content, is_assistant)
         else:
-            # Use HTML rendering for non-code-block messages with THEME-COMPATIBLE colors
+            # Use HTML rendering for simple messages
             processed_content = UIComponents.format_message_content_html(content)
             
             if is_assistant:
-                # THEME-COMPATIBLE: Use CSS variables that adapt to theme instead of hardcoded colors
                 st.markdown(f"""
                 <div style="display: flex; justify-content: flex-start; margin-bottom: 8px;">
                     <div style="
@@ -61,12 +63,11 @@ class UIComponents:
                         max-width: 75%;
                         word-wrap: break-word;
                     ">
-                        <strong>🤖 Claude:</strong><br>{processed_content}
+                        <strong>🤖 Cody:</strong><br>{processed_content}
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
             else:
-                # THEME-COMPATIBLE: Use CSS variables for user messages too
                 st.markdown(f"""
                 <div style="display: flex; justify-content: flex-end; margin-bottom: 8px;">
                     <div style="
@@ -114,7 +115,7 @@ class UIComponents:
             col1, col2 = st.columns([4, 1])
             with col1:
                 with st.container():
-                    st.markdown("🤖 **Claude:**")
+                    st.markdown("🤖 **Cody:**")
                     # CRITICAL: Use pure st.markdown() to preserve MCQ formatting
                     st.markdown(content)
                     st.divider()
