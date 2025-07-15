@@ -1,6 +1,7 @@
 """
 Adaptive coaching system core - enhanced with smart code snippet inclusion.
 ENHANCED VERSION: Automatically includes relevant code snippets for long code files.
+FIXED: Integrates smart code change detection to reset coaching state for new code.
 """
 
 import uuid
@@ -13,6 +14,7 @@ from .question_templates import QuestionSelector, QuestionTemplates
 from .coaching_helpers import AnswerEvaluator, CodeAnalysisHelper, ResponseGenerator, NudgeGenerator
 from .analyzer import CodeAnalyzer
 from .code_snippet_analyzer import CodeSnippetAnalyzer  # NEW: Import snippet analyzer
+from .smart_code_detection import CodeChangeDetector  # FIXED: Import existing detection system
 from templates.examples import ExampleGenerator, get_example_code
 
 # ENHANCED: Import session memory and learning continuity components
@@ -35,6 +37,7 @@ class AdaptiveCoach:
     """
     Main coaching system with enhanced confusion detection, learning continuity, and smart code snippets.
     ENHANCED: Automatically includes relevant code snippets for long code files.
+    FIXED: Automatically resets coaching state when entirely new code is detected.
     """
     
     def __init__(self, code_analyzer: CodeAnalyzer):
@@ -43,6 +46,7 @@ class AdaptiveCoach:
         self.question_selector = QuestionSelector()
         self.first_example_shown = False
         self.first_example_code = None
+        self.last_analyzed_code = ""  # FIXED: Track last analyzed code for change detection
         print("DEBUG: Initial state - first_example_shown:", self.first_example_shown)
         print("DEBUG: Initial state - first_example_code:", self.first_example_code)
     
@@ -74,8 +78,44 @@ class AdaptiveCoach:
     def enhanced_process_code_submission(self, code: str, coaching_state: CoachingState) -> Tuple[str, CoachingMode]:
         """
         ENHANCED: Process code submission with interview-critical issue detection and smart code snippets.
+        FIXED: Integrates smart code change detection to reset coaching state for new code.
         """
         print("Processing code submission with interview-critical analysis and snippet enhancement...")
+        
+        # FIXED: Smart code change detection - reset state for new code
+        if self.last_analyzed_code:
+            try:
+                change_type, confidence, details = CodeChangeDetector.detect_change_type(
+                    self.last_analyzed_code, code
+                )
+                print(f"DEBUG: Code change detected: {change_type} (confidence: {confidence:.2f})")
+                
+                if change_type == "NEW_CODE":
+                    print("DEBUG: NEW_CODE detected - resetting coaching state")
+                    # Reset coaching state for entirely new code
+                    coaching_state.resolved_issues = set()
+                    coaching_state.main_issue = None
+                    coaching_state.interaction_history = []
+                    coaching_state.total_questions_asked = 0
+                    coaching_state.correct_answers = 0
+                    coaching_state.learning_progress = {}
+                    
+                    # Reset session memory if available
+                    if hasattr(coaching_state, 'session_memory'):
+                        coaching_state.session_memory = SessionMemory()
+                    
+                    print("DEBUG: Coaching state reset for new code submission")
+                elif change_type == "OPTIMIZATION":
+                    print("DEBUG: OPTIMIZATION detected - preserving coaching state")
+                else:  # "UNCLEAR"
+                    print(f"DEBUG: UNCLEAR change type - preserving state but noting uncertainty")
+            except Exception as e:
+                print(f"DEBUG: Error in code change detection: {e}")
+                # Continue with normal processing if detection fails
+        
+        # Update last analyzed code for future comparisons
+        self.last_analyzed_code = code
+        
         code_analysis = CodeAnalysisHelper.analyze_code_for_coaching(code)
         print("DEBUG: Enhanced code_analysis =", code_analysis)
 

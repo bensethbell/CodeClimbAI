@@ -6,7 +6,9 @@ ADD THIS to the coaching system to prevent question repetition and build on prio
 from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass, field
 from datetime import datetime
-from .coaching_models import LearningQuestion, QuestionType, CoachingInteraction, AnswerStatus
+from .coaching_models import (
+    LearningQuestion, QuestionType, CoachingInteraction, AnswerStatus, CoachingMode
+)
 
 @dataclass
 class QuestionMemory:

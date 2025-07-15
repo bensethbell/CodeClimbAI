@@ -17,11 +17,11 @@ def add_metrics(df):
     return df'''
 
 class InputHandler:
-    """Handles user input processing and special commands."""
+    """FIXED: Handles user input with guaranteed coaching state consistency."""
     
     @staticmethod
     def handle_user_message(clean_input, assistant):
-        """Handle user message processing."""
+        """Handle user message processing with FIXED coaching system."""
         try:
             add_debug_message(f"Processing input: {clean_input}")
             
@@ -160,7 +160,9 @@ Great! Your code runs without errors. Now let's focus on optimization."""
 
 {execution_result['fake_data_info'] if execution_result['fake_data_info'] else ''}
 
-Let's fix this error first. Can you identify what's causing the issue?"""
+Let's fix this error first. Can you identify what's causing this issue and how to fix it?
+
+Take a look at the error message and share your thoughts, or ask for a hint if you need guidance."""
                 
                 add_message_to_session(st.session_state.session, MessageRole.USER, "test")
                 add_message_to_session(st.session_state.session, MessageRole.ASSISTANT, response)
@@ -174,28 +176,46 @@ Let's fix this error first. Can you identify what's causing the issue?"""
     
     @staticmethod
     def handle_regular_chat(clean_input, assistant):
-        """Handle regular chat messages with adaptive coaching."""
+        """FIXED: Handle regular chat messages with ABSOLUTE coaching state consistency."""
         try:
             if not st.session_state.session:
                 st.session_state.session = ReviewSession("", "", "", [])
             
-            # Check if we're waiting for an answer to a coaching question
-            if (hasattr(st.session_state.session, 'coaching_state') and 
-                st.session_state.session.coaching_state and
-                st.session_state.session.coaching_state.is_waiting_for_answer()):
+            # CRITICAL FIX: Ensure coaching system consistency before processing
+            from core.coaching_integration import CoachingIntegration
+            
+            # STEP 1: Validate coaching system consistency
+            CoachingIntegration.validate_coaching_consistency()
+            
+            # STEP 2: Force synchronization if needed
+            coaching_state, adaptive_coach = CoachingIntegration.force_coaching_sync()
+            
+            # STEP 3: Check if we're waiting for an answer to a coaching question
+            if coaching_state and coaching_state.is_waiting_for_answer():
                 
-                # Process the answer with adaptive coach
-                from core.adaptive_coach import AdaptiveCoach
-                from core.analyzer import CodeAnalyzer
+                add_debug_message(f"🎯 COACHING: Processing MCQ answer '{clean_input}'")
+                add_debug_message(f"🎯 Using coaching state ID: {id(coaching_state)}")
+                add_debug_message(f"🎯 Using adaptive coach ID: {id(adaptive_coach)}")
+                add_debug_message(f"🎯 Current interaction: {coaching_state.current_interaction}")
                 
-                code_analyzer = CodeAnalyzer()
-                adaptive_coach = AdaptiveCoach(code_analyzer)
+                # CRITICAL: Ensure session coaching state is synced
+                if (hasattr(st.session_state.session, 'coaching_state') and 
+                    st.session_state.session.coaching_state != coaching_state):
+                    add_debug_message(f"⚠️ Syncing session coaching state")
+                    st.session_state.session.coaching_state = coaching_state
                 
-                feedback = adaptive_coach.handle_user_answer(clean_input, st.session_state.session.coaching_state)
+                # Process the answer with the SAME adaptive coach that created the question
+                feedback = adaptive_coach.handle_user_answer(clean_input, coaching_state)
                 add_message_to_session(st.session_state.session, MessageRole.USER, clean_input)
                 add_message_to_session(st.session_state.session, MessageRole.ASSISTANT, feedback)
+                
+                add_debug_message(f"✅ COACHING: MCQ answer processed successfully")
                 return
+            else:
+                add_debug_message(f"💬 REGULAR: Not waiting for answer, processing as regular chat")
+                add_debug_message(f"💬 Coaching state waiting: {coaching_state.is_waiting_for_answer() if coaching_state else 'No state'}")
             
+            add_debug_message(f"💬 REGULAR: Processing regular chat message")
             add_message_to_session(st.session_state.session, MessageRole.USER, clean_input)
             
             # Generate response
@@ -225,3 +245,5 @@ Let's fix this error first. Can you identify what's causing the issue?"""
         except Exception as e:
             st.error(f"Error in regular chat: {str(e)}")
             add_debug_message(f"❌ Error in handle_regular_chat: {str(e)}")
+            import traceback
+            add_debug_message(f"❌ Traceback: {traceback.format_exc()}")

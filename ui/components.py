@@ -46,14 +46,16 @@ class UIComponents:
             # FIXED: Use enhanced method that preserves MCQ formatting
             UIComponents.render_message_with_code_blocks_and_mcq_support(content, is_assistant)
         else:
-            # Use original HTML rendering for non-code-block messages
+            # Use HTML rendering for non-code-block messages with THEME-COMPATIBLE colors
             processed_content = UIComponents.format_message_content_html(content)
             
             if is_assistant:
+                # THEME-COMPATIBLE: Use CSS variables that adapt to theme instead of hardcoded colors
                 st.markdown(f"""
                 <div style="display: flex; justify-content: flex-start; margin-bottom: 8px;">
                     <div style="
-                        background-color: #e3f2fd; 
+                        background-color: var(--background-color, rgba(30, 130, 180, 0.1)); 
+                        border: 1px solid var(--border-color, rgba(30, 130, 180, 0.2));
                         padding: 10px; 
                         border-radius: 10px; 
                         max-width: 75%;
@@ -64,10 +66,12 @@ class UIComponents:
                 </div>
                 """, unsafe_allow_html=True)
             else:
+                # THEME-COMPATIBLE: Use CSS variables for user messages too
                 st.markdown(f"""
                 <div style="display: flex; justify-content: flex-end; margin-bottom: 8px;">
                     <div style="
-                        background-color: #e8f5e8; 
+                        background-color: var(--secondary-background-color, rgba(76, 175, 80, 0.1)); 
+                        border: 1px solid var(--secondary-border-color, rgba(76, 175, 80, 0.2));
                         padding: 10px; 
                         border-radius: 10px; 
                         max-width: 75%;
@@ -125,34 +129,34 @@ class UIComponents:
     
     @staticmethod
     def render_message_with_code_blocks_pure_streamlit(content: str, is_assistant: bool):
-        """DEPRECATED: Use render_message_with_code_blocks_and_mcq_support instead."""
+        """PRESERVED: Use render_message_with_code_blocks_and_mcq_support instead."""
         return UIComponents.render_message_with_code_blocks_and_mcq_support(content, is_assistant)
     
     @staticmethod
     def format_message_content_html(content: str) -> str:
-        """Format message content for HTML rendering (no code blocks)."""
+        """PRESERVED: Format message content for HTML rendering (no code blocks)."""
         # Basic markdown to HTML conversion
         content = re.sub(r'\*\*([^*\n]+)\*\*', r'<strong>\1</strong>', content)
         content = re.sub(r'(?<!\*)\*([^*\n]+)\*(?!\*)', r'<em>\1</em>', content)
         
-        # Format inline code
+        # Format inline code with THEME-COMPATIBLE styling
         content = re.sub(
             r'`([^`]+)`',
-            r'<code style="font-family: monospace; font-weight: bold; background-color: #f0f0f0; padding: 2px 4px; border-radius: 3px;">\1</code>',
+            r'<code style="font-family: monospace; font-weight: bold; background-color: var(--code-background, rgba(128, 128, 128, 0.1)); padding: 2px 4px; border-radius: 3px;">\1</code>',
             content
         )
         
-        # Format error messages
+        # Format error messages with THEME-COMPATIBLE colors
         content = re.sub(
             r'🚨 Error: ([^\n]+)',
-            r'<div style="color: #d32f2f; font-weight: bold;">🚨 Error: \1</div>',
+            r'<div style="color: var(--error-color, #d32f2f); font-weight: bold;">🚨 Error: \1</div>',
             content
         )
         
-        # Format success messages
+        # Format success messages with THEME-COMPATIBLE colors
         content = re.sub(
             r'✅ ([^\n]+)',
-            r'<div style="color: #2e7d2e; font-weight: bold;">✅ \1</div>',
+            r'<div style="color: var(--success-color, #2e7d2e); font-weight: bold;">✅ \1</div>',
             content
         )
         
@@ -163,7 +167,7 @@ class UIComponents:
     
     @staticmethod
     def render_welcome_message():
-        """Render the welcome message."""
+        """PRESERVED: Render the welcome message."""
         welcome_msg = ChatMessage(
             MessageRole.ASSISTANT,
             "👋 Welcome! Let's learn through discovery.\n\n**Quick start:**\n• Click **'📚 Get Example'** to load sample code\n• **Paste your own code** on the left\n• **Click '📤 Submit Code'** to begin learning\n\nReady to start? 🚀"
@@ -171,22 +175,22 @@ class UIComponents:
         UIComponents.render_chat_message(welcome_msg)
 
 class UIManager:
-    """Manages all UI rendering and user interactions."""
+    """PRESERVED: Manages all UI rendering and user interactions."""
     
     @staticmethod
     def render_code_input_panel():
-        """Render the left panel for code input."""
+        """PRESERVED: Render the left panel for code input."""
         from .panels import PanelRenderer
         PanelRenderer.render_code_input_panel()
     
     @staticmethod
     def render_chat_panel(assistant):
-        """Render the middle panel for chat interface."""
+        """PRESERVED: Render the middle panel for chat interface."""
         from .panels import PanelRenderer
         PanelRenderer.render_chat_panel(assistant)
     
     @staticmethod
     def render_instructions_panel():
-        """Render the right panel with properly collapsible instructions."""
+        """PRESERVED: Render the right panel with properly collapsible instructions."""
         from .panels import PanelRenderer
         PanelRenderer.render_instructions_panel()

@@ -1,0 +1,17 @@
+[theme]
+# Force light theme to prevent dark mode readability issues
+primaryColor = "#1f77b4"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f0f2f6"
+textColor = "#262730"
+base = "light"
+
+[server]
+# Ensure consistent rendering
+headless = true
+enableCORS = false
+enableXsrfProtection = true
+
+[browser]
+# Prevent auto dark mode detection
+gatherUsageStats = false
